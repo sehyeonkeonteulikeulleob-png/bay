@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>타석 체크인 (테스트)</title>
+<script src="config.js"></script>
+<style>
+  body { margin: 0; font-family: sans-serif; background: #fff; color: #111; height: 100vh; display: flex; flex-direction: column; }
+  header { padding: 10px 16px; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; font-weight: bold; }
+  #calls div { background: #ffeeba; padding: 10px 16px; border-bottom: 1px solid #e0c060; display: flex; justify-content: space-between; align-items: center; }
+  main { flex: 1; display: flex; gap: 16px; padding: 16px; min-height: 0; }
+  section { flex: 1; display: flex; flex-direction: column; gap: 10px; border: 1px solid #ccc; padding: 12px; min-width: 0; }
+  h3 { margin: 0; }
+  button { font-size: 18px; padding: 12px; min-height: 48px; border: 1px solid #888; background: #f4f4f4; }
+  button.on { background: #222; color: #fff; }
+  button:disabled { color: #999; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .row button { flex: 1; }
+  #bays { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #sigWrap { position: relative; flex: 1; min-height: 120px; border: 1px dashed #888; }
+  #sig { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  /* 필기판 뒤 희미한 안내 글씨 (저장되는 이미지에는 안 들어감) */
+  #guide { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: rgba(0,0,0,.13); pointer-events: none; text-align: center; }
+  #guide b { font-size: 44px; letter-spacing: 10px; }
+  #guide span { font-size: 18px; }
+  input[type=text] { font-size: 18px; padding: 10px; width: 100%; box-sizing: border-box; }
+  #go { background: #222; color: #fff; font-weight: bold; }
+  #msg { position: fixed; inset: 0; background: rgba(0,0,0,.8); color: #fff; font-size: 36px; display: none; align-items: center; justify-content: center; text-align: center; }
+  #net { display: none; background: #c00; color: #fff; padding: 4px; text-align: center; }
+</style>
+</head>
+<body>
+  <header><span>스크린 타석 체크인 (테스트)</span><span id="clock"></span></header>
+  <div id="net">서버 연결 안 됨</div>
+  <div id="calls"></div>
+
+  <main>
+    <section>
+      <h3>1. 이용 수칙 동의</h3>
+      <ol style="margin:0;padding-left:22px;line-height:1.6">
+        <li>이용 시간을 지키며, 대기 고객이 있으면 양보하겠습니다.</li>
+        <li>실내에서는 흡연 및 음주를 하지 않겠습니다.</li>
+        <li>연습 스윙은 지정된 타석 안에서만 하며, 주변 안전에 유의하겠습니다.</li>
+        <li>음식물을 반입하거나 섭취하지 않겠습니다.</li>
+        <li>본인 부주의로 인한 분실·안전사고는 골프장이 책임지지 않으며, 시설물 훼손 시 배상 책임은 이용자에게 있습니다.</li>
+      </ol>
+      <label><input type="checkbox" id="agree"> 위 이용 수칙을 확인했으며 동의합니다</label>
+      <div>성함 (정자로 적어주세요) <button style="font-size:14px;min-height:32px;padding:4px 10px" onclick="clearSig()">지우기</button></div>
+      <div id="sigWrap">
+        <div id="guide"><b>성 함</b><span>본인 성함을 정자로 또박또박 적어주세요</span></div>
+        <canvas id="sig"></canvas>
+      </div>
+    </section>
+
+    <section>
+      <div id="direct">
+        <h3>2. 타석 선택</h3>
+        <div id="bays"></div>
+      </div>
+      <div id="waitBox" style="display:none">
+        <h3 id="waitTitle">2. 만석 — 대기 등록</h3>
+        <p id="waitInfo" style="margin:4px 0"></p>
+        <input type="text" id="wname" placeholder="성함" autocomplete="off">
+        <input type="text" id="wphone" placeholder="휴대폰 뒤 4자리" inputmode="numeric" maxlength="4" autocomplete="off" style="margin-top:8px">
+      </div>
+
+      <h3>3. 이용 시간</h3>
+      <div class="row" id="mins"></div>
+
+      <div style="flex:1"></div>
+      <button id="go" onclick="submit()">시작</button>
+    </section>
+  </main>
+
+  <div id="msg"></div>
+
+<script>
+var st = null, stAt = 0, selBay = 0, selSec = DUR_DEFAULT, hasSig = false, busy = false;
+var announced = {}, prevRem = {}, fails = 0, direct = true;
+
+/* 서명 */
+var cv = document.getElementById('sig'), ctx = cv.getContext('2d'), drawing = false;
+function fit() { var r = cv.getBoundingClientRect(); if (r.width && cv.width !== Math.round(r.width)) { cv.width = Math.round(r.width); cv.height = Math.round(r.height); ctx.lineWidth = 3; ctx.lineCap = 'round'; } }
+setTimeout(fit, 100); window.addEventListener('resize', fit);
+function pos(e) { var r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+cv.onpointerdown = function (e) { fit(); drawing = true; var p = pos(e); ctx.beginPath(); ctx.moveTo(p[0], p[1]); };
+cv.onpointermove = function (e) { if (!drawing) return; var p = pos(e); ctx.lineTo(p[0], p[1]); ctx.stroke(); hasSig = true; document.getElementById('guide').style.display = 'none'; };
+window.onpointerup = function () { drawing = false; };
+function clearSig() { ctx.clearRect(0, 0, cv.width, cv.height); hasSig = false; document.getElementById('guide').style.display = 'flex'; }
+function sigData() {
+  var o = document.createElement('canvas'); o.width = 400; o.height = Math.round(400 * cv.height / Math.max(cv.width, 1));
+  var c = o.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, o.width, o.height); c.drawImage(cv, 0, 0, o.width, o.height);
+  return o.toDataURL('image/jpeg', 0.5);
+}
+
+/* 이용시간 버튼 */
+function drawMins() {
+  var box = document.getElementById('mins'); box.innerHTML = '';
+  DUR_OPTIONS.forEach(function (m) {
+    var b = document.createElement('button'); b.textContent = durLabel(m);
+    if (m === selSec) b.className = 'on';
+    b.onclick = function () { selSec = m; drawMins(); drawGo(); };
+    box.appendChild(b);
+  });
+}
+
+/* 서버 상태 */
+function poll() {
+  apiGet('status').then(function (s) {
+    fails = 0; document.getElementById('net').style.display = 'none';
+    if (s) { st = s; stAt = Date.now(); render(); }
+  }).catch(function () { if (++fails >= 3) document.getElementById('net').style.display = 'block'; });
+}
+function nowSrv() { return st.now + (Date.now() - stAt); }
+function rem(b) { return b.endAt ? Math.max(0, Math.round((b.endAt - nowSrv()) / 1000)) : 0; }
+
+function render() {
+  if (!st) return;
+  // 호출
+  var cb = document.getElementById('calls'); cb.innerHTML = '';
+  st.calls.forEach(function (c) {
+    var left = Math.max(0, Math.round((c.deadline - nowSrv()) / 1000));
+    var d = document.createElement('div');
+    d.innerHTML = '<span>호출: ' + c.name + '님(' + c.phone4 + ') → ' + c.bay + '번 타석, ' + durLabel(c.sec) + ' · 남은 ' + mmss(left) + '</span>';
+    var b = document.createElement('button'); b.textContent = '입장 시작';
+    b.onclick = function () { claim(c.row, c.phone4); };
+    d.appendChild(b); cb.appendChild(d);
+    if (!announced['c' + c.row]) { announced['c' + c.row] = 1; speak('대기 고객 ' + c.name + '님, ' + c.bay + '번 타석 이용 가능합니다. 입구 태블릿에서 입장을 시작해 주세요.'); }
+  });
+
+  // 타석 + 음성
+  var frees = [];
+  st.bays.forEach(function (b) {
+    var r = rem(b);
+    if (b.status === 'busy') {
+      var k = b.no + '-' + b.endAt;
+      if (r <= st.warnSec && r > 0 && !announced[k + 'w']) { announced[k + 'w'] = 1; speak(b.no + '번 타석, 종료 ' + durLabel(st.warnSec) + ' 전입니다.'); }
+      if (r === 0 && prevRem[b.no] > 0 && !announced[k + 'e']) { announced[k + 'e'] = 1; speak(b.no + '번 타석 이용시간이 종료되었습니다.'); }
+      prevRem[b.no] = r;
+    } else { prevRem[b.no] = 0; if (b.status === 'free') frees.push(b.no); }
+  });
+
+  direct = frees.length > 0 && !st.waiting.length && !st.calls.length;
+  document.getElementById('direct').style.display = direct ? '' : 'none';
+  document.getElementById('waitBox').style.display = direct ? 'none' : '';
+
+  if (direct) {
+    if (frees.indexOf(selBay) < 0) selBay = frees[0];
+    var g = document.getElementById('bays'); g.innerHTML = '';
+    st.bays.forEach(function (b) {
+      var btn = document.createElement('button');
+      if (b.status === 'free') {
+        btn.textContent = b.no + '번 (비어있음)';
+        if (b.no === selBay) btn.className = 'on';
+        btn.onclick = function () { selBay = b.no; render(); };
+      } else {
+        btn.disabled = true;
+        btn.textContent = b.no + '번 ' + (b.status === 'held' ? '(입장대기)' : '(' + mmss(rem(b)) + ' 남음)');
+      }
+      g.appendChild(btn);
+    });
+  } else {
+    document.getElementById('waitInfo').textContent = '현재 대기 ' + st.waiting.length + '명';
+  }
+  drawGo();
+}
+function drawGo() {
+  document.getElementById('go').textContent = direct ? (selBay + '번 타석 · ' + durLabel(selSec) + ' 시작') : ('대기 등록 (' + durLabel(selSec) + ')');
+}
+
+/* 액션 */
+function show(t) { var m = document.getElementById('msg'); m.textContent = t; m.style.display = 'flex'; setTimeout(function () { m.style.display = 'none'; reset(); }, 4000); }
+function reset() { document.getElementById('agree').checked = false; clearSig(); document.getElementById('wname').value = ''; document.getElementById('wphone').value = ''; selSec = DUR_DEFAULT; drawMins(); busy = false; poll(); }
+function err(t) { busy = false; alertBox(t || '통신 오류'); poll(); }
+function alertBox(t) { var m = document.getElementById('msg'); m.textContent = t; m.style.display = 'flex'; setTimeout(function () { m.style.display = 'none'; }, 2000); }
+
+function submit() {
+  if (busy) return;
+  if (!document.getElementById('agree').checked) return alertBox('동의에 체크해 주세요');
+  if (!hasSig) return alertBox('성함을 정자로 적어주세요');
+  if (direct) {
+    busy = true;
+    apiPost('checkin', { bay: selBay, sec: selSec, sig: sigData() }).then(function (r) {
+      if (r && r.ok) { speak(r.bay + '번 타석, ' + durLabel(r.sec) + ' 이용을 시작합니다.'); show(r.bay + '번 타석 · ' + durLabel(r.sec) + ' 시작'); }
+      else err(r && r.msg);
+    }).catch(function () { err(); });
+  } else {
+    var n = document.getElementById('wname').value.trim(), p = document.getElementById('wphone').value.trim();
+    if (!n) return alertBox('성함을 입력해 주세요');
+    if (!/^\d{4}$/.test(p)) return alertBox('휴대폰 뒤 4자리를 입력해 주세요');
+    busy = true;
+    apiPost('wait', { name: n, phone4: p, sec: selSec, sig: sigData() }).then(function (r) {
+      if (r && r.ok) show('대기 등록 완료'); else err(r && r.msg);
+    }).catch(function () { err(); });
+  }
+}
+function claim(row, phone4) {
+  if (busy) return; busy = true;
+  apiPost('claim', { row: row, phone4: phone4 }).then(function (r) {
+    if (r && r.ok) { speak(r.bay + '번 타석, ' + durLabel(r.sec) + ' 이용을 시작합니다.'); show(r.bay + '번 타석 · ' + durLabel(r.sec) + ' 시작'); }
+    else err(r && r.msg);
+  }).catch(function () { err(); });
+}
+
+drawMins();
+setInterval(function () { document.getElementById('clock').textContent = new Date().toTimeString().slice(0, 5); if (st) render(); }, 1000);
+poll(); setInterval(poll, 5000);
+</script>
+</body>
+</html>
