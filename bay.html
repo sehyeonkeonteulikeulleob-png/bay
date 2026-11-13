@@ -34,8 +34,8 @@ function render() {
     document.getElementById('time').textContent = mmss(r);
     if (document.getElementById('cf').style.display === 'none') document.getElementById('end').style.display = '';
     var k = b.endAt;
-    if (r <= st.warnSec && r > 0 && !announced[k + 'w']) { announced[k + 'w'] = 1; speak(BAY + '번 타석, 종료 ' + durLabel(st.warnSec) + ' 전입니다.'); }
-    if (r === 0 && !announced[k + 'e']) { announced[k + 'e'] = 1; speak(BAY + '번 타석 이용시간이 종료되었습니다.'); }
+    if (r <= st.warnSec && r > 0 && !announced[k + 'w']) { announced[k + 'w'] = 1; speak(bayWord(BAY) + '번 타석, 종료 ' + durLabel(st.warnSec) + ' 전입니다.'); }
+    if (r === 0 && !announced[k + 'e']) { announced[k + 'e'] = 1; speak(bayWord(BAY) + '번 타석 이용시간이 종료되었습니다.'); }
   } else {
     document.body.className = '';
     document.getElementById('state').textContent = b.status === 'held' ? '입장 대기 중' : '이용 가능';

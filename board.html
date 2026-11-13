@@ -44,7 +44,7 @@ function render() {
   var txt = '대기 ' + (st.waiting.length + st.calls.length) + '명';
   st.calls.forEach(function (c) {
     txt += ' | 호출: ' + c.name + '(' + c.phone4 + ') → ' + c.bay + '번';
-    if (!announced['c' + c.row]) { announced['c' + c.row] = 1; speak('대기 고객 ' + c.name + '님, ' + c.bay + '번 타석 이용 가능합니다. 입구 태블릿에서 입장을 시작해 주세요.'); }
+    if (!announced['c' + c.row]) { announced['c' + c.row] = 1; speak('대기 고객 ' + c.name + '님, ' + bayWord(c.bay) + '번 타석 이용 가능합니다. 입구 태블릿에서 입장을 시작해 주세요.'); }
   });
   st.waiting.forEach(function (w, i) { txt += ' | ' + (i + 1) + '. ' + w.name + '(' + w.phone4 + ')'; });
   document.getElementById('q').textContent = txt;

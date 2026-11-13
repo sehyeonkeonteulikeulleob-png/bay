@@ -34,6 +34,11 @@ function speak(text) {
   u.lang = 'ko-KR'; u.rate = 0.95;
   speechSynthesis.speak(u);
 }
+// 음성용 타석 번호: 1 → "일" (안 그러면 "한번 타석"으로 읽음)
+function bayWord(n) {
+  var w = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구', '십'];
+  return w[n] || String(n);
+}
 // 초 → "20초" / "10분" / "1분 30초"
 function durLabel(sec) {
   sec = Math.round(sec);

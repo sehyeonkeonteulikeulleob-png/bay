@@ -22,7 +22,7 @@
   #sig { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
   /* 필기판 뒤 희미한 안내 글씨 (저장되는 이미지에는 안 들어감) */
   #guide { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: rgba(0,0,0,.13); pointer-events: none; text-align: center; }
-  #guide b { font-size: 44px; letter-spacing: 10px; }
+  #guide b { font-size: 96px; letter-spacing: 24px; font-weight: 700; line-height: 1.1; }
   #guide span { font-size: 18px; }
   input[type=text] { font-size: 18px; padding: 10px; width: 100%; box-sizing: border-box; }
   #go { background: #222; color: #fff; font-weight: bold; }
@@ -48,7 +48,7 @@
       <label><input type="checkbox" id="agree"> 위 이용 수칙을 확인했으며 동의합니다</label>
       <div>성함 (정자로 적어주세요) <button style="font-size:14px;min-height:32px;padding:4px 10px" onclick="clearSig()">지우기</button></div>
       <div id="sigWrap">
-        <div id="guide"><b>성 함</b><span>본인 성함을 정자로 또박또박 적어주세요</span></div>
+        <div id="guide"><b>홍 길 동</b><span>본인 성함을 정자로 또박또박 적어주세요</span></div>
         <canvas id="sig"></canvas>
       </div>
     </section>
@@ -91,7 +91,7 @@ function clearSig() { ctx.clearRect(0, 0, cv.width, cv.height); hasSig = false; 
 function sigData() {
   var o = document.createElement('canvas'); o.width = 400; o.height = Math.round(400 * cv.height / Math.max(cv.width, 1));
   var c = o.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, o.width, o.height); c.drawImage(cv, 0, 0, o.width, o.height);
-  return o.toDataURL('image/jpeg', 0.5);
+  return o.toDataURL('image/png');
 }
 
 /* 이용시간 버튼 */
@@ -126,7 +126,7 @@ function render() {
     var b = document.createElement('button'); b.textContent = '입장 시작';
     b.onclick = function () { claim(c.row, c.phone4); };
     d.appendChild(b); cb.appendChild(d);
-    if (!announced['c' + c.row]) { announced['c' + c.row] = 1; speak('대기 고객 ' + c.name + '님, ' + c.bay + '번 타석 이용 가능합니다. 입구 태블릿에서 입장을 시작해 주세요.'); }
+    if (!announced['c' + c.row]) { announced['c' + c.row] = 1; speak('대기 고객 ' + c.name + '님, ' + bayWord(c.bay) + '번 타석 이용 가능합니다. 입구 태블릿에서 입장을 시작해 주세요.'); }
   });
 
   // 타석 + 음성
@@ -135,8 +135,8 @@ function render() {
     var r = rem(b);
     if (b.status === 'busy') {
       var k = b.no + '-' + b.endAt;
-      if (r <= st.warnSec && r > 0 && !announced[k + 'w']) { announced[k + 'w'] = 1; speak(b.no + '번 타석, 종료 ' + durLabel(st.warnSec) + ' 전입니다.'); }
-      if (r === 0 && prevRem[b.no] > 0 && !announced[k + 'e']) { announced[k + 'e'] = 1; speak(b.no + '번 타석 이용시간이 종료되었습니다.'); }
+      if (r <= st.warnSec && r > 0 && !announced[k + 'w']) { announced[k + 'w'] = 1; speak(bayWord(b.no) + '번 타석, 종료 ' + durLabel(st.warnSec) + ' 전입니다.'); }
+      if (r === 0 && prevRem[b.no] > 0 && !announced[k + 'e']) { announced[k + 'e'] = 1; speak(bayWord(b.no) + '번 타석 이용시간이 종료되었습니다.'); }
       prevRem[b.no] = r;
     } else { prevRem[b.no] = 0; if (b.status === 'free') frees.push(b.no); }
   });
@@ -182,7 +182,7 @@ function submit() {
   if (direct) {
     busy = true;
     apiPost('checkin', { bay: selBay, sec: selSec, sig: sigData() }).then(function (r) {
-      if (r && r.ok) { speak(r.bay + '번 타석, ' + durLabel(r.sec) + ' 이용을 시작합니다.'); show(r.bay + '번 타석 · ' + durLabel(r.sec) + ' 시작'); }
+      if (r && r.ok) { speak(bayWord(r.bay) + '번 타석, ' + durLabel(r.sec) + ' 이용을 시작합니다.'); show(r.bay + '번 타석 · ' + durLabel(r.sec) + ' 시작'); }
       else err(r && r.msg);
     }).catch(function () { err(); });
   } else {
@@ -198,7 +198,7 @@ function submit() {
 function claim(row, phone4) {
   if (busy) return; busy = true;
   apiPost('claim', { row: row, phone4: phone4 }).then(function (r) {
-    if (r && r.ok) { speak(r.bay + '번 타석, ' + durLabel(r.sec) + ' 이용을 시작합니다.'); show(r.bay + '번 타석 · ' + durLabel(r.sec) + ' 시작'); }
+    if (r && r.ok) { speak(bayWord(r.bay) + '번 타석, ' + durLabel(r.sec) + ' 이용을 시작합니다.'); show(r.bay + '번 타석 · ' + durLabel(r.sec) + ' 시작'); }
     else err(r && r.msg);
   }).catch(function () { err(); });
 }
