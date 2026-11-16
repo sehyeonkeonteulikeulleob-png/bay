@@ -3,49 +3,96 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>타석 타이머 (테스트)</title>
+<title>타석 카운트다운 · SEHYEON CC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="config.js"></script>
 <style>
-  body { margin: 0; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3vh; text-align: center; }
-  #no { font-size: 6vh; font-weight: bold; }
-  #state { font-size: 3vh; }
-  #time { font-size: 18vh; font-weight: bold; }
-  button { font-size: 3vh; padding: 2vh 5vw; }
-  .warn #time { color: #e90; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #0d1710; color: #f2f0e8; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 5vh 6vw; overflow: hidden; user-select: none; text-align: center; }
+  .cc { font-size: 2.2vh; font-weight: 700; letter-spacing: 5px; color: #c9a24b; }
+  .bayno { font-size: 6vh; font-weight: 900; margin-top: 2vh; }
+  .state { display: inline-block; font-size: 2.6vh; font-weight: 700; border-radius: 999px; padding: 1.2vh 3vw; margin-top: 1.5vh; border: 1px solid; }
+  .mid { display: flex; flex-direction: column; align-items: center; gap: 2.5vh; }
+  .cap { font-size: 2.6vh; color: #8fa193; }
+  #time { font-size: 20vh; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+  #barwrap { width: 70vw; max-width: 520px; height: 2.2vh; background: #1a2a1f; border-radius: 999px; overflow: hidden; }
+  #bar { height: 100%; background: #4cc07e; width: 0%; }
+  .note { font-size: 2vh; color: #8fa193; line-height: 1.5; }
+  #endBtn { font-family: inherit; min-height: 60px; border: 1px solid #2e4636; border-radius: 14px; background: #13251a; color: #b9c2b8; font-size: 2.4vh; font-weight: 700; padding: 1.5vh 5vw; cursor: pointer; margin-top: 1.5vh; }
+  #confirm { display: none; gap: 12px; justify-content: center; margin-top: 1.5vh; }
+  #confirm button { font-family: inherit; min-height: 60px; border-radius: 14px; font-size: 2.4vh; font-weight: 900; padding: 1.5vh 6vw; border: none; }
+  .st-busy { color: #e88d85; background: #2a1715; border-color: #553029; }
+  .st-free { color: #7fd8a4; background: #13251a; border-color: #2e4636; }
+  .warn #time { color: #f0cd7e; } .warn #bar { background: #e3a93c; }
 </style>
 </head>
 <body>
-  <div id="no"></div>
-  <div id="state">-</div>
-  <div id="time">--:--</div>
-  <button id="end" style="display:none" onclick="ask()">먼저 끝났어요</button>
-  <div id="cf" style="display:none"><button onclick="endNow()">종료하기</button> <button onclick="cancel()">취소</button></div>
+  <div>
+    <div class="cc">SEHYEON CC</div>
+    <div class="bayno" id="bayno">-번 타석</div>
+    <div class="state st-free" id="state">이용 가능</div>
+  </div>
+
+  <div class="mid">
+    <div class="cap" id="cap">입구 태블릿에서 체크인하세요</div>
+    <div id="time">--:--</div>
+    <div id="barwrap"><div id="bar"></div></div>
+  </div>
+
+  <div>
+    <div class="note">종료 직전과 종료 시 음성 안내가 나옵니다</div>
+    <button id="endBtn" style="display:none" onclick="askEnd()">먼저 끝났어요 (조기 종료)</button>
+    <div id="confirm">
+      <button style="background:#e0594f;color:#fff" onclick="endNow()">종료하기</button>
+      <button style="background:#1a2a1f;color:#b9c2b8" onclick="cancelEnd()">취소</button>
+    </div>
+  </div>
+
 <script>
-var BAY = Number(param('no', '1')), st = null, stAt = 0, announced = {}, busy = false;
-document.getElementById('no').textContent = BAY + '번 타석';
-function poll() { apiGet('status').then(function (s) { if (s) { st = s; stAt = Date.now(); render(); } }).catch(function () {}); }
+var BAY = Number(param('no', '1'));
+document.getElementById('bayno').textContent = BAY + '번 타석';
+var st = null, stAt = 0, announced = {}, busyCall = false;
+
+function poll() {
+  apiGet('status').then(function (s) { if (s) { st = s; stAt = Date.now(); render(); } }).catch(function () {});
+}
 function render() {
   if (!st) return;
-  var b = st.bays.filter(function (x) { return x.no === BAY; })[0]; if (!b) return;
+  var b = st.bays.filter(function (x) { return x.no === BAY; })[0];
+  if (!b) return;
+  var stateEl = document.getElementById('state'), timeEl = document.getElementById('time');
   if (b.status === 'busy') {
-    var r = Math.max(0, Math.round((b.endAt - (st.now + Date.now() - stAt)) / 1000));
+    var r = Math.max(0, Math.round((b.endAt - (st.now + (Date.now() - stAt))) / 1000));
     document.body.className = r <= st.warnSec ? 'warn' : '';
-    document.getElementById('state').textContent = '사용 중 · ' + durLabel((b.endAt - b.startAt) / 1000) + ' 이용';
-    document.getElementById('time').textContent = mmss(r);
-    if (document.getElementById('cf').style.display === 'none') document.getElementById('end').style.display = '';
-    var k = b.endAt;
-    if (r <= st.warnSec && r > 0 && !announced[k + 'w']) { announced[k + 'w'] = 1; speak(bayWord(BAY) + '번 타석, 종료 ' + durLabel(st.warnSec) + ' 전입니다.'); }
-    if (r === 0 && !announced[k + 'e']) { announced[k + 'e'] = 1; speak(bayWord(BAY) + '번 타석 이용시간이 종료되었습니다.'); }
+    stateEl.className = 'state st-busy'; var total = (b.endAt - b.startAt) / 1000;
+    stateEl.textContent = '사용 중 · ' + durLabel(total) + ' 이용';
+    document.getElementById('cap').textContent = '남은 시간';
+    timeEl.textContent = mmss(r);
+    document.getElementById('bar').style.width = Math.round(r / total * 100) + '%';
+    if (document.getElementById('confirm').style.display !== 'flex') document.getElementById('endBtn').style.display = 'inline-block';
+    var k = BAY + '-' + b.endAt;
+    if (r <= st.warnSec && r > 0 && !announced[k + '-w']) { announced[k + '-w'] = 1; speak(bayWord(BAY) + '번 타석, 종료 ' + durLabel(st.warnSec) + ' 전입니다.'); }
+    if (r === 0 && !announced[k + '-e']) { announced[k + '-e'] = 1; speak(bayWord(BAY) + '번 타석 이용시간이 종료되었습니다. 이용해 주셔서 감사합니다.'); }
   } else {
     document.body.className = '';
-    document.getElementById('state').textContent = b.status === 'held' ? '입장 대기 중' : '이용 가능';
-    document.getElementById('time').textContent = '--:--';
-    document.getElementById('end').style.display = 'none'; document.getElementById('cf').style.display = 'none';
+    stateEl.className = 'state st-free';
+    stateEl.textContent = b.status === 'held' ? '입장 대기 중' : '이용 가능';
+    document.getElementById('cap').textContent = b.status === 'held' ? '호출된 고객 입장 대기' : '입구 태블릿에서 체크인하세요';
+    timeEl.textContent = '--:--';
+    document.getElementById('bar').style.width = '100%';
+    document.getElementById('endBtn').style.display = 'none';
+    document.getElementById('confirm').style.display = 'none';
   }
 }
-function ask() { document.getElementById('end').style.display = 'none'; document.getElementById('cf').style.display = ''; }
-function cancel() { document.getElementById('cf').style.display = 'none'; render(); }
-function endNow() { if (busy) return; busy = true; apiPost('end', { bay: BAY }).then(function () { busy = false; cancel(); poll(); }).catch(function () { busy = false; }); }
+// 브라우저 기본 confirm 창 대신 화면 내 확인 버튼 사용
+function askEnd() { document.getElementById('endBtn').style.display = 'none'; document.getElementById('confirm').style.display = 'flex'; }
+function cancelEnd() { document.getElementById('confirm').style.display = 'none'; render(); }
+function endNow() {
+  if (busyCall) return; busyCall = true;
+  apiPost('end', { bay: BAY }).then(function () { busyCall = false; cancelEnd(); poll(); })
+    .catch(function () { busyCall = false; });
+}
 setInterval(function () { if (st) render(); }, 1000);
 poll(); setInterval(poll, 10000);
 </script>

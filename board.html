@@ -3,53 +3,145 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>타석 현황 (테스트)</title>
+<title>스크린 연습 타석 현황 · SEHYEON CC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="config.js"></script>
+<link rel="icon" href="icon-192.png">
 <style>
-  body { margin: 0; font-family: sans-serif; background: #fff; color: #111; padding: 2vw; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; gap: 2vh; }
-  h1 { margin: 0; font-size: 3vw; display: flex; justify-content: space-between; }
-  #bays { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5vw; }
-  .bay { border: 3px solid #999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1vh; font-size: 2vw; text-align: center; }
-  .bay b { font-size: 3vw; }
-  .bay .t { font-size: 5vw; font-weight: bold; }
-  .free { border-color: #2a2; } .busy { border-color: #c22; } .warn { border-color: #e90; background: #fff6e0; } .held { border-color: #36c; }
-  #q { font-size: 2vw; border-top: 1px solid #ccc; padding-top: 1vh; }
-  #unlock { position: fixed; inset: 0; background: rgba(0,0,0,.7); color: #fff; font-size: 3vw; display: none; align-items: center; justify-content: center; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #0d1710; color: #f2f0e8; height: 100vh; display: flex; flex-direction: column; padding: 2.5vh 3vw 0 3vw; overflow: hidden; user-select: none; cursor: none; }
+
+  .head { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .head .l { display: flex; align-items: baseline; gap: 16px; }
+  .head .cc { font-size: 1.2vw; font-weight: 700; letter-spacing: 4px; color: #c9a24b; }
+  .head h1 { margin: 0; font-size: 2.4vw; font-weight: 900; }
+  .legend { display: flex; align-items: center; gap: 8px; font-size: 1vw; color: #b9c2b8; }
+  .legend i { width: 0.8vw; height: 0.8vw; border-radius: 50%; display: inline-block; }
+  .clock { font-size: 2.2vw; font-weight: 900; font-variant-numeric: tabular-nums; }
+
+  .grid { flex-grow: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.5vw; margin-top: 2vh; min-height: 0; }
+  .bay { border-radius: 1.2vw; display: flex; flex-direction: column; overflow: hidden; border: 2px solid; }
+  .bay .strip { height: 1vh; flex-shrink: 0; }
+  .bay .body { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1vh; padding: 1vw; text-align: center; }
+  .bay .no { font-size: 1.8vw; font-weight: 900; }
+  .bay .label { font-size: 1.6vw; font-weight: 700; }
+  .bay .time { font-size: 4.6vw; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+  .bay .sub { font-size: 1vw; }
+  .bay .foot { height: 6vh; flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center; font-size: 0.95vw; border-top: 1px solid rgba(255,255,255,0.08); }
+  .bay .bar { position: absolute; left: 0; top: 0; bottom: 0; opacity: 0.55; }
+  .bay .foot span { position: relative; }
+
+  .free  { background: #13251a; border-color: #2e7a4f; }
+  .free .strip { background: #4cc07e; } .free .no { color: #b9c2b8; } .free .label { font-size: 3.2vw; font-weight: 900; color: #4cc07e; } .free .sub { color: #8fa193; } .free .foot { color: #6f8276; }
+  .busy  { background: #241515; border-color: #6e3833; }
+  .busy .strip, .busy .bar { background: #e0594f; } .busy .no { color: #c9b6b3; } .busy .label { color: #e88d85; } .busy .sub { color: #a89491; } .busy .foot { color: #d8c2bf; }
+  .warn  { background: #262012; border-color: #87702f; }
+  .warn .strip, .warn .bar { background: #e3a93c; } .warn .no { color: #cec2a4; } .warn .label { color: #ecc068; } .warn .time { color: #f0cd7e; } .warn .sub { color: #b3a683; } .warn .foot { color: #e3d3ab; }
+  .held  { background: #141f2a; border-color: #35557a; }
+  .held .strip { background: #5aa0e0; } .held .no { color: #b3c3d3; } .held .label { font-size: 2.2vw; font-weight: 900; color: #7db8ec; } .held .sub { color: #8fa5b8; } .held .foot { color: #7d93a8; }
+
+  .foot-row { height: 10vh; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 2vw; margin-top: 2vh; border-top: 1px solid #22352a; }
+  .queue { display: flex; align-items: center; gap: 1.2vw; min-width: 0; }
+  .queue .cnt { font-size: 1.4vw; font-weight: 900; color: #c9a24b; flex-shrink: 0; }
+  .queue .chips { display: flex; gap: 0.8vw; overflow: hidden; }
+  .chip { background: #1a2a1f; border: 1px solid #2e4636; border-radius: 999px; padding: 0.8vh 1.4vw; font-size: 1.1vw; font-weight: 700; white-space: nowrap; }
+  .chip.call { background: #2b2410; border-color: #87702f; color: #ecc068; }
+  .ticker { font-size: 1.25vw; font-weight: 700; color: #ecc068; text-align: right; flex-shrink: 0; max-width: 46vw; }
+
+  /* 음성 활성화 안내 (최초 1회 클릭/터치 필요) */
+  #unlock { position: fixed; inset: 0; background: rgba(13,23,16,0.88); display: none; align-items: center; justify-content: center; font-size: 2vw; font-weight: 700; color: #ecc068; z-index: 5; cursor: pointer; }
 </style>
 </head>
 <body>
-  <h1><span>스크린 타석 현황 (테스트)</span><span id="clock"></span></h1>
-  <div id="bays"></div>
-  <div id="q">대기 0명</div>
-  <div id="unlock">클릭하면 음성 안내가 켜집니다</div>
+  <div class="head">
+    <div class="l"><span class="cc">SEHYEON CC</span><h1>스크린 연습 타석 현황</h1></div>
+    <div style="display:flex;align-items:center;gap:2vw">
+      <div class="legend">
+        <i style="background:#4cc07e"></i> 이용 가능
+        <i style="background:#e3a93c;margin-left:0.8vw"></i> 곧 종료
+        <i style="background:#e0594f;margin-left:0.8vw"></i> 사용 중
+        <i style="background:#5aa0e0;margin-left:0.8vw"></i> 입장 대기
+      </div>
+      <div class="clock" id="clock">--:--</div>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="foot-row">
+    <div class="queue">
+      <span class="cnt" id="qcnt">대기 0명</span>
+      <div class="chips" id="qchips"></div>
+    </div>
+    <div class="ticker" id="ticker">입구 태블릿에서 체크인해 주세요</div>
+  </div>
+
+  <div id="unlock">🔊 화면을 한 번 클릭하면 음성 안내가 켜집니다</div>
+
 <script>
 var st = null, stAt = 0, announced = {};
-if (VOICE) { var u = document.getElementById('unlock'); u.style.display = 'flex'; u.onclick = function () { speak(' '); u.style.display = 'none'; }; }
 
-function poll() { apiGet('status').then(function (s) { if (s) { st = s; stAt = Date.now(); render(); } }).catch(function () {}); }
-function rem(b) { return b.endAt ? Math.max(0, Math.round((b.endAt - (st.now + Date.now() - stAt)) / 1000)) : 0; }
+// 음성 사용 시 최초 1회 클릭 유도
+if (VOICE) {
+  var ul = document.getElementById('unlock'); ul.style.display = 'flex';
+  ul.onclick = function () { speak(' '); ul.style.display = 'none'; };
+}
+
+function poll() {
+  apiGet('status').then(function (s) { if (s) { st = s; stAt = Date.now(); render(); } }).catch(function () {});
+}
+function nowSrv() { return st.now + (Date.now() - stAt); }
+function remSec(b) { return b.endAt ? Math.max(0, Math.round((b.endAt - nowSrv()) / 1000)) : 0; }
 
 function render() {
   if (!st) return;
-  var g = document.getElementById('bays'); g.innerHTML = '';
+  var g = document.getElementById('grid'); g.innerHTML = '';
+  var tickerMsg = '입구 태블릿에서 체크인해 주세요';
+
   st.bays.forEach(function (b) {
-    var r = rem(b), d = document.createElement('div');
-    var cls = b.status === 'busy' ? (r <= st.warnSec ? 'warn' : 'busy') : b.status;
-    d.className = 'bay ' + cls;
-    if (b.status === 'free') d.innerHTML = '<b>' + b.no + '번</b><div>이용 가능</div>';
-    else if (b.status === 'held') d.innerHTML = '<b>' + b.no + '번</b><div>입장 대기</div>';
-    else d.innerHTML = '<b>' + b.no + '번</b><div>' + (cls === 'warn' ? '곧 종료' : '사용 중') + '</div><div class="t">' + mmss(r) + '</div><div>' + durLabel((b.endAt - b.startAt) / 1000) + ' 이용</div>';
-    g.appendChild(d);
+    var r = remSec(b), total = b.endAt ? (b.endAt - b.startAt) / 1000 : 1;
+    var cls = b.status === 'free' ? 'free' : b.status === 'held' ? 'held' : (r <= st.warnSec ? 'warn' : 'busy');
+    var d = document.createElement('div'); d.className = 'bay ' + cls;
+    var html = '<div class="strip"></div><div class="body"><div class="no">' + b.no + '번 타석</div>';
+    if (cls === 'free') {
+      html += '<div class="label">이용 가능</div><div class="sub">입구 태블릿에서 체크인하세요</div></div><div class="foot"><span>— 비어 있음 —</span></div>';
+    } else if (cls === 'held') {
+      var c = st.calls.filter(function (x) { return x.bay === b.no; })[0];
+      html += '<div class="label">입장 대기</div><div class="sub">' + (c ? c.name + '님 호출 중' : '') + '</div></div><div class="foot"><span>입구에서 입장 터치 대기</span></div>';
+    } else {
+      var pct = Math.round(r / total * 100);
+      html += '<div class="label">' + (cls === 'warn' ? '곧 종료' : '사용 중') + '</div>'
+        + '<div class="time">' + mmss(r) + '</div><div class="sub">' + durLabel(total) + ' 이용</div></div>'
+        + '<div class="foot"><div class="bar" style="width:' + pct + '%"></div><span>남은 시간 ' + pct + '%</span></div>';
+      if (cls === 'warn') tickerMsg = '🔔 ' + b.no + '번 타석이 곧 종료됩니다';
+    }
+    d.innerHTML = html; g.appendChild(d);
   });
-  var txt = '대기 ' + (st.waiting.length + st.calls.length) + '명';
+
+  var chips = document.getElementById('qchips'); chips.innerHTML = '';
   st.calls.forEach(function (c) {
-    txt += ' | 호출: ' + c.name + '(' + c.phone4 + ') → ' + c.bay + '번';
-    if (!announced['c' + c.row]) { announced['c' + c.row] = 1; speak('대기 고객 ' + c.name + '님, ' + bayWord(c.bay) + '번 타석 이용 가능합니다. 입구 태블릿에서 입장을 시작해 주세요.'); }
+    var s = document.createElement('span'); s.className = 'chip call';
+    s.textContent = '▶ ' + c.name + ' (' + c.phone4 + ') → ' + c.bay + '번 입장';
+    chips.appendChild(s);
+    tickerMsg = '🔔 ' + c.name + '님, ' + c.bay + '번 타석 이용 가능 — 입구 태블릿에서 입장을 시작해 주세요';
+    var key = 'call-' + c.row;
+    if (!announced[key]) { announced[key] = 1; speak('대기 고객 ' + c.name + '님, ' + bayWord(c.bay) + '번 타석 이용 가능합니다. 입구 태블릿에서 입장을 시작해 주세요.'); }
   });
-  st.waiting.forEach(function (w, i) { txt += ' | ' + (i + 1) + '. ' + w.name + '(' + w.phone4 + ')'; });
-  document.getElementById('q').textContent = txt;
+  st.waiting.forEach(function (w, i) {
+    var s = document.createElement('span'); s.className = 'chip';
+    s.textContent = (i + 1) + '. ' + w.name + ' (' + w.phone4 + ')';
+    chips.appendChild(s);
+  });
+  document.getElementById('qcnt').textContent = '대기 ' + (st.waiting.length + st.calls.length) + '명';
+  document.getElementById('ticker').textContent = tickerMsg;
 }
-setInterval(function () { document.getElementById('clock').textContent = new Date().toTimeString().slice(0, 5); if (st) render(); }, 1000);
+
+setInterval(function () {
+  var d = new Date();
+  document.getElementById('clock').textContent = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  if (st) render();
+}, 1000);
 poll(); setInterval(poll, 5000);
 </script>
 </body>

@@ -9,6 +9,14 @@ var DUR_OPTIONS = [10, 20, 30, 40, 50];
 var DUR_DEFAULT = 20;
 /*********************************************************************/
 
+// 화면을 터치하면 전체화면으로 전환 (주소창·상단바 숨김). 빠져나와도 다음 터치에 다시 꽉 참
+document.addEventListener('pointerup', function () {
+  var d = document.documentElement;
+  if (document.fullscreenElement || document.webkitFullscreenElement) return;
+  var fn = d.requestFullscreen || d.webkitRequestFullscreen;
+  if (fn) { try { var p = fn.call(d); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
+});
+
 // 서버 호출 공통 함수 (수정 불필요)
 function apiGet(action) {
   return fetch(API_URL + '?action=' + action).then(function (r) { return r.json(); });
