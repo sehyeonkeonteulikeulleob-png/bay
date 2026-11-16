@@ -19,7 +19,7 @@ document.addEventListener('pointerup', function () {
 
 // 서버 호출 공통 함수 (수정 불필요)
 function apiGet(action) {
-  return fetch(API_URL + '?action=' + action).then(function (r) { return r.json(); });
+  return fetch(API_URL + '?action=' + action).then(readJson_);
 }
 function apiPost(action, data) {
   data = data || {};
@@ -28,7 +28,17 @@ function apiPost(action, data) {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(data)
-  }).then(function (r) { return r.json(); });
+  }).then(readJson_);
+}
+// 서버 응답 읽기: JSON이 아니면(구글 오류 화면 등) 그 안의 문구를 오류로 보여줌
+function readJson_(r) {
+  return r.text().then(function (t) {
+    try { return JSON.parse(t); }
+    catch (e) {
+      var msg = t.replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+      throw new Error('[' + r.status + '] ' + (msg || '빈 응답'));
+    }
+  });
 }
 function param(name, def) {
   var v = new URLSearchParams(location.search).get(name);

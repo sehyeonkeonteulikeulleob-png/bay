@@ -89,8 +89,10 @@
 
   #ok { display: none; position: fixed; inset: 0; background: rgba(13,23,16,0.92); color: #f7f4ec; z-index: 10; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; }
   #ok .big { font-size: 56px; font-weight: 900; }
+  .spin { width: 64px; height: 64px; border: 7px solid rgba(247,244,236,.2); border-top-color: #c9a24b; border-radius: 50%; animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   #ok .sub { font-size: 22px; color: #bfd3c4; }
-  #toast { display: none; position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #15241b; color: #f7f4ec; border-radius: 10px; padding: 12px 22px; font-size: 16px; z-index: 11; }
+  #toast { display: none; position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #15241b; color: #f7f4ec; border-radius: 10px; padding: 12px 22px; font-size: 16px; z-index: 11; max-width: 90vw; text-align: center; }
 </style>
 </head>
 <body>
@@ -153,7 +155,7 @@
     </div>
   </div>
 
-  <div id="ok"><div class="big" id="okBig"></div><div class="sub" id="okSub"></div></div>
+  <div id="ok"><div class="spin" id="okSpin"></div><div class="big" id="okBig"></div><div class="sub" id="okSub"></div></div>
   <div id="toast"></div>
 
 <script>
@@ -264,15 +266,25 @@ function drawGo() {
 }
 
 /* ---------- 액션 ---------- */
-function toast(t) { var e = document.getElementById('toast'); e.textContent = t; e.style.display = 'block'; setTimeout(function () { e.style.display = 'none'; }, 3000); }
+function toast(t) { var e = document.getElementById('toast'); e.textContent = t; e.style.display = 'block'; setTimeout(function () { e.style.display = 'none'; }, 7000); }
+var okT = null;
+function busyShow(big, sub) {
+  clearTimeout(okT);
+  document.getElementById('okSpin').style.display = 'block';
+  document.getElementById('okBig').textContent = big;
+  document.getElementById('okSub').textContent = sub || '잠시만 기다려 주세요';
+  document.getElementById('ok').style.display = 'flex';
+}
 function okShow(big, sub) {
+  clearTimeout(okT);
+  document.getElementById('okSpin').style.display = 'none';
   document.getElementById('okBig').textContent = big;
   document.getElementById('okSub').textContent = sub;
   document.getElementById('ok').style.display = 'flex';
-  setTimeout(function () { document.getElementById('ok').style.display = 'none'; reset(); }, 5000);
+  okT = setTimeout(function () { document.getElementById('ok').style.display = 'none'; reset(); }, 5000);
 }
 function reset() { document.getElementById('agree').checked = false; document.getElementById('wname').value = ''; document.getElementById('id4').value = ''; setIdType('락커'); selSec = DUR_DEFAULT; drawMins(); busy = false; poll(); }
-function err(t) { busy = false; toast(t || '통신 오류 — 다시 시도해 주세요.'); poll(); }
+function err(t) { clearTimeout(okT); document.getElementById('ok').style.display = 'none'; busy = false; toast(t || '통신 오류 — 다시 시도해 주세요.'); poll(); }
 
 function submit() {
   if (busy) return;
@@ -281,27 +293,27 @@ function submit() {
   if (!/^\d{4}$/.test(n4)) return toast(idType === '락커' ? '락커번호 4자리를 입력해 주세요.' : '휴대폰 뒤 4자리를 입력해 주세요.');
   var who = idType + ' ' + n4;   // 시트에는 "락커 0712" / "휴대폰 0712" 로 저장
   if (direct) {
-    busy = true;
+    busy = true; busyShow(selBay + '번 타석 배정 중…');
     apiPost('checkin', { bay: selBay, sec: selSec, phone4: who }).then(function (r) {
       if (r && r.ok) { speak(bayWord(r.bay) + '번 타석, ' + durLabel(r.sec) + ' 이용을 시작합니다.'); okShow(r.bay + '번 타석', durLabel(r.sec) + ' 이용을 시작합니다. 즐거운 연습 되세요!'); }
       else err(r && r.msg);
-    }).catch(function () { err(); });
+    }).catch(function (e) { err('통신 오류 — ' + (e && e.message ? e.message : '다시 시도해 주세요')); });
   } else {
     var n = document.getElementById('wname').value.trim();
     if (!n) return toast('호출 안내를 위해 성함을 입력해 주세요.');
-    busy = true;
+    busy = true; busyShow('대기 등록 중…');
     apiPost('wait', { name: n, phone4: who, sec: selSec }).then(function (r) {
       if (r && r.ok) okShow('대기 등록 완료', n + '님, 자리가 나면 화면과 음성으로 불러드립니다.');
       else err(r && r.msg);
-    }).catch(function () { err(); });
+    }).catch(function (e) { err('통신 오류 — ' + (e && e.message ? e.message : '다시 시도해 주세요')); });
   }
 }
 function claim(row, phone4) {
-  if (busy) return; busy = true;
+  if (busy) return; busy = true; busyShow('입장 처리 중…');
   apiPost('claim', { row: row, phone4: phone4 }).then(function (r) {
     if (r && r.ok) { speak(bayWord(r.bay) + '번 타석, ' + durLabel(r.sec) + ' 이용을 시작합니다.'); okShow(r.bay + '번 타석', '지금부터 ' + durLabel(r.sec) + '입니다. 즐거운 연습 되세요!'); }
     else err(r && r.msg);
-  }).catch(function () { err(); });
+  }).catch(function (e) { err('통신 오류 — ' + (e && e.message ? e.message : '다시 시도해 주세요')); });
 }
 
 drawMins();
