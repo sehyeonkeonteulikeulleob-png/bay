@@ -65,9 +65,11 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
 }
 
 // 번호 4자리 칸: 숫자만 입력되게 하고, 4자리를 다 누르면 키패드를 자동으로 내림
+// 잘못 눌렀을 때: 칸을 다시 누르면 번호가 지워지고 처음부터 입력
 document.addEventListener('DOMContentLoaded', function () {
   var el = document.getElementById('id4');
   if (!el) return;
+  el.addEventListener('focus', function () { el.value = ''; });
   el.addEventListener('input', function () {
     var v = el.value.replace(/\D/g, '').slice(0, 4);
     if (v !== el.value) el.value = v;
