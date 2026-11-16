@@ -16,10 +16,11 @@
   body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #f2efe6; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
   button { font-family: inherit; cursor: pointer; }
 
-  .top { background: #0e3b24; color: #f7f4ec; height: 64px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .top { background: #0e3b24; color: #f7f4ec; height: 84px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
   .top .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; }
-  .top .brand .cc { font-size: 13px; letter-spacing: 3px; }
-  .top .brand .t { font-size: 18px; }
+  .top .brand .logo { height: 70px; width: auto; display: block; }
+  .top .brand .bar { width: 1px; height: 34px; background: rgba(247,244,236,.3); margin: 0 6px; }
+  .top .brand .t { font-size: 20px; }
   .top .clock { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
   #net { display: none; background: #a4493f; color: #fff; text-align: center; font-size: 14px; padding: 6px; }
 
@@ -43,6 +44,12 @@
   .agree { display: flex; align-items: center; gap: 10px; background: #f2f7f0; border: 1px solid #cfdccf; border-radius: 10px; padding: 9px 14px; }
   .agree input { width: 24px; height: 24px; accent-color: #0e3b24; flex-shrink: 0; }
   .agree label { font-size: 16px; font-weight: 700; color: #15241b; }
+  .step { flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+  .left .rules { margin: 0; padding-left: 30px; font-size: 21px; line-height: 1.6; color: #2f2d28; display: flex; flex-direction: column; justify-content: center; gap: 18px; flex-grow: 1; }
+  .left .rules li::marker { font-weight: 900; color: #0e3b24; }
+  .agreeBtn { min-height: 76px; flex-shrink: 0; border: none; border-radius: 14px; background: #0e3b24; color: #f7f4ec; font-size: 21px; font-weight: 900; }
+  .agreed { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #f2f7f0; border: 1px solid #cfdccf; border-radius: 10px; padding: 6px 8px 6px 14px; font-size: 15px; font-weight: 700; color: #1d6b40; flex-shrink: 0; }
+  .agreed button { font-size: 14px; background: #fff; border: 1px solid #d6d2c4; border-radius: 8px; padding: 6px 14px; color: #5c5a52; min-height: 40px; }
   .divider { height: 1px; background: #ece8dc; margin: 2px 0; flex-shrink: 0; }
   .idbox { flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
   .seg { display: flex; background: #f2efe6; border-radius: 12px; padding: 4px; gap: 4px; flex-shrink: 0; }
@@ -103,7 +110,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="brand"><span class="cc">SEHYEON CC</span><span style="opacity:.4">|</span><span class="t">스크린 연습 타석 체크인</span></div>
+    <div class="brand"><img class="logo" src="logo.png" alt="세현 컨트리클럽"><span class="bar"></span><span class="t">스크린 연습 타석 체크인</span></div>
     <div style="display:flex;align-items:center;gap:12px">
       <span style="font-size:13px;color:rgba(247,244,236,.8)">1인 1타석 · 무료</span>
       <span class="clock" id="clock">--:--</span>
@@ -115,20 +122,22 @@
   <div class="main">
     <!-- 좌측: 이용 수칙 + 본인 확인 -->
     <div class="card left">
-      <h2>1. 이용 수칙 동의</h2>
-      <ol>
+      <!-- 1단계: 이용 수칙 (왼쪽 전체) -->
+      <div class="step" id="stepRules">
+        <h2>1. 이용 수칙</h2>
+        <ol class="rules">
         <li>이용 시간을 지키며, 대기 고객이 있으면 양보하겠습니다.</li>
         <li>실내에서는 흡연 및 음주를 하지 않겠습니다.</li>
         <li>연습 스윙은 지정된 타석 안에서만 하며, 주변 안전에 유의하겠습니다.</li>
         <li>음식물을 반입하거나 섭취하지 않겠습니다.</li>
         <li>본인 부주의로 인한 분실·안전사고는 골프장이 책임지지 않으며, 시설물 훼손 시 배상 책임은 이용자에게 있습니다.</li>
-      </ol>
-      <div class="agree">
-        <input type="checkbox" id="agree">
-        <label for="agree">위 이용 수칙을 확인했으며 동의합니다</label>
+        </ol>
+        <button class="agreeBtn" onclick="setAgreed(true)">위 이용 수칙을 확인했으며 동의합니다</button>
       </div>
 
-      <div class="divider"></div>
+      <!-- 2단계: 동의 후 같은 자리에 본인 확인 -->
+      <div class="step" id="stepId" style="display:none">
+      <div class="agreed"><span>✓ 이용 수칙에 동의했습니다</span><button onclick="setAgreed(false)">수칙 다시 보기</button></div>
       <div class="idbox">
         <div class="sub-h"><h2>2. 본인 확인</h2><span class="hint" id="idHint">락커 키에 적힌 번호 4자리를 입력해 주세요</span></div>
         <div class="seg" id="idType">
@@ -138,6 +147,7 @@
         <!-- 태블릿 기본 키보드가 뜨지 않도록 readonly — 아래 숫자 키패드로 입력 -->
         <input type="text" id="id4" placeholder="0000" readonly inputmode="none" autocomplete="off" aria-label="번호 4자리">
         <div class="pad" id="pad" aria-label="숫자 키패드"></div>
+      </div>
       </div>
     </div>
 
@@ -290,12 +300,12 @@ function okShow(big, sub) {
   document.getElementById('ok').style.display = 'flex';
   okT = setTimeout(function () { document.getElementById('ok').style.display = 'none'; reset(); }, 5000);
 }
-function reset() { document.getElementById('agree').checked = false; document.getElementById('wname').value = ''; document.getElementById('id4').value = ''; setIdType('락커'); selSec = DUR_DEFAULT; drawMins(); busy = false; poll(); }
+function reset() { setAgreed(false); document.getElementById('wname').value = ''; document.getElementById('id4').value = ''; setIdType('락커'); selSec = DUR_DEFAULT; drawMins(); busy = false; poll(); }
 function err(t) { clearTimeout(okT); document.getElementById('ok').style.display = 'none'; busy = false; toast(t || '통신 오류 — 다시 시도해 주세요.'); poll(); }
 
 function submit() {
   if (busy) return;
-  if (!document.getElementById('agree').checked) return toast('이용 수칙 동의에 체크해 주세요.');
+  if (!AGREED) return toast('왼쪽 이용 수칙을 읽고 [동의합니다]를 눌러 주세요.');
   var n4 = document.getElementById('id4').value.trim();
   if (!/^\d{4}$/.test(n4)) return toast(idType === '락커' ? '락커번호 4자리를 입력해 주세요.' : '휴대폰 뒤 4자리를 입력해 주세요.');
   var who = idType + ' ' + n4;   // 시트에는 "락커 0712" / "휴대폰 0712" 로 저장

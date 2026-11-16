@@ -3,10 +3,12 @@
 var API_URL = 'https://script.google.com/macros/s/AKfycbwFIWO6BAUXB_P3OhdkaXE1NofND7MKyBG-x_T4Q8h3bXh17KEtUqduj3rgbVFqksnn/exec';
 
 // 체크인 때 고를 수 있는 이용시간 (단위: 초) — 숫자만 바꾸면 버튼이 바뀜
-//   테스트: [10, 20, 30, 40, 50]
-//   운영 예: [300, 600, 900, 1200]  (= 5분, 10분, 15분, 20분)
-var DUR_OPTIONS = [10, 20, 30, 40, 50];
-var DUR_DEFAULT = 20;
+//   예: [300, 600, 900] = 5분·10분·15분 / 테스트용 초 단위: [10, 20, 30]
+var DUR_OPTIONS = [300, 600, 900];   // 5분, 10분, 15분
+var DUR_DEFAULT = 600;               // 처음 선택돼 있는 시간 (10분)
+
+// 버튼 누를 때 '딸깍' 소리 (끄려면 false)
+var CLICK_SOUND = true;
 /*********************************************************************/
 
 // 화면을 터치하면 전체화면으로 전환 (주소창·상단바 숨김). 빠져나와도 다음 터치에 다시 꽉 참
@@ -95,3 +97,34 @@ document.addEventListener('DOMContentLoaded', function () {
     pad.appendChild(b);
   });
 });
+
+// 클릭 소리: 파일 없이 브라우저에서 짧은 '딸깍' 소리를 만들어 재생
+var _ac = null;
+function clickSound() {
+  if (!CLICK_SOUND) return;
+  try {
+    if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (_ac.state === 'suspended') _ac.resume();
+    var t = _ac.currentTime, o = _ac.createOscillator(), g = _ac.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(1800, t);
+    o.frequency.exponentialRampToValueAtTime(900, t + 0.03);
+    g.gain.setValueAtTime(0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    o.connect(g); g.connect(_ac.destination);
+    o.start(t); o.stop(t + 0.06);
+  } catch (e) {}
+}
+document.addEventListener('pointerdown', function (e) {
+  var el = e.target && e.target.closest ? e.target.closest('button, #id4') : null;
+  if (el && !el.disabled) clickSound();
+}, true);
+
+// 왼쪽 화면 단계: 이용 수칙 → (동의) → 본인 확인
+var AGREED = false;
+function setAgreed(v) {
+  AGREED = v;
+  var r = document.getElementById('stepRules'), i = document.getElementById('stepId');
+  if (r) r.style.display = v ? 'none' : 'flex';
+  if (i) i.style.display = v ? 'flex' : 'none';
+}
