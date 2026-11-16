@@ -58,3 +58,19 @@ function mmss(sec) {
   var m = Math.floor(sec / 60), s = sec % 60;
   return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
 }
+
+// 앱 설치용 서비스워커 등록 (GitHub Pages 같은 보안 주소에서만 동작)
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register('sw.js').catch(function () {});
+}
+
+// 번호 4자리 칸: 숫자만 입력되게 하고, 4자리를 다 누르면 키패드를 자동으로 내림
+document.addEventListener('DOMContentLoaded', function () {
+  var el = document.getElementById('id4');
+  if (!el) return;
+  el.addEventListener('input', function () {
+    var v = el.value.replace(/\D/g, '').slice(0, 4);
+    if (v !== el.value) el.value = v;
+    if (v.length === 4) el.blur();
+  });
+});
