@@ -66,6 +66,15 @@ function durLabel(sec) {
   if (!m) return s + '초';
   return s ? m + '분 ' + s + '초' : m + '분';
 }
+// 대기 호출용 번호 표시/음성 — 이름 대신 "락커 1234" / "휴대폰 1234" 로 부름
+function whoLabel(p) { return String(p || '').trim(); }
+function whoSpeak(p) {   // 음성: "락커 번호 일 이 삼 사" (안 그러면 "천이백삼십사"로 읽음)
+  var m = String(p || '').match(/^(\S+)\s*(\d+)$/), d = ['영', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
+  if (!m) return String(p || '');
+  var digits = m[2].split('').map(function (c) { return d[+c]; }).join(' ');
+  return (m[1] === '휴대폰' ? '휴대폰 뒷번호 ' : m[1] + ' 번호 ') + digits;
+}
+function callSpeech(c) { return whoSpeak(c.phone4) + ' 고객님, ' + bayWord(c.bay) + '번 타석 이용 가능합니다. 입구 태블릿에서 입장을 시작해 주세요.'; }
 function mmss(sec) {
   var m = Math.floor(sec / 60), s = sec % 60;
   return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;

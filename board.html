@@ -6,7 +6,7 @@
 <title>스크린 연습 타석 현황 · SEHYEON CC</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="config.js"></script>
+<script src="config.js?v=202611161800"></script>
 <link rel="icon" href="icon-192.png">
 <style>
   * { box-sizing: border-box; }
@@ -108,7 +108,7 @@ function render() {
       html += '<div class="label">이용 가능</div><div class="sub">입구 태블릿에서 체크인하세요</div></div><div class="foot"><span>— 비어 있음 —</span></div>';
     } else if (cls === 'held') {
       var c = st.calls.filter(function (x) { return x.bay === b.no; })[0];
-      html += '<div class="label">입장 대기</div><div class="sub">' + (c ? c.name + '님 호출 중' : '') + '</div></div><div class="foot"><span>입구에서 입장 터치 대기</span></div>';
+      html += '<div class="label">입장 대기</div><div class="sub">' + (c ? whoLabel(c.phone4) + ' 호출 중' : '') + '</div></div><div class="foot"><span>입구에서 입장 터치 대기</span></div>';
     } else {
       var pct = Math.round(r / total * 100);
       html += '<div class="label">' + (cls === 'warn' ? '곧 종료' : '사용 중') + '</div>'
@@ -122,15 +122,15 @@ function render() {
   var chips = document.getElementById('qchips'); chips.innerHTML = '';
   st.calls.forEach(function (c) {
     var s = document.createElement('span'); s.className = 'chip call';
-    s.textContent = '▶ ' + c.name + ' (' + c.phone4 + ') → ' + c.bay + '번 입장';
+    s.textContent = '▶ ' + whoLabel(c.phone4) + ' → ' + c.bay + '번 입장';
     chips.appendChild(s);
-    tickerMsg = '🔔 ' + c.name + '님, ' + c.bay + '번 타석 이용 가능 — 입구 태블릿에서 입장을 시작해 주세요';
+    tickerMsg = '🔔 ' + whoLabel(c.phone4) + ' 고객님, ' + c.bay + '번 타석 이용 가능 — 입구 태블릿에서 입장을 시작해 주세요';
     var key = 'call-' + c.row;
-    if (!announced[key]) { announced[key] = 1; speak('대기 고객 ' + c.name + '님, ' + bayWord(c.bay) + '번 타석 이용 가능합니다. 입구 태블릿에서 입장을 시작해 주세요.'); }
+    if (!announced[key]) { announced[key] = 1; speak(callSpeech(c)); }
   });
   st.waiting.forEach(function (w, i) {
     var s = document.createElement('span'); s.className = 'chip';
-    s.textContent = (i + 1) + '. ' + w.name + ' (' + w.phone4 + ')';
+    s.textContent = (i + 1) + '. ' + whoLabel(w.phone4);
     chips.appendChild(s);
   });
   document.getElementById('qcnt').textContent = '대기 ' + (st.waiting.length + st.calls.length) + '명';
