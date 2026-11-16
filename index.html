@@ -69,13 +69,16 @@
   /* 우측 */
   .right { flex-grow: 1; min-width: 0; }
   /* 실제 룸 배치: 윗줄 1·2·3번 / 아랫줄 왼쪽 입구(2칸), 오른쪽 4번 */
-  #bayGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(80px, 1fr)); gap: 10px; flex-grow: 1; }
-  .door { grid-column: span 2; border: 2px dashed #d6d2c4; border-radius: 12px; background: #faf8f2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-  .door b { font-size: 15px; color: #6b6658; }
-  .door span { font-size: 12px; color: #8a8577; }
+  #bayGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; flex: 0 0 auto; height: clamp(120px, 22vh, 220px); }
+  /* 룸 안내도 (단순 도면) */
+  .mapbox { flex: 1 1 auto; position: relative; overflow: hidden; border: 1px solid #e0dccd; border-radius: 12px; background: #faf8f2; min-height: 140px; }
+  /* 칸 크기에 맞춰 안내도가 줄어들기만 하고, 칸을 밀어내지 않게 */
+  .mapbox svg { position: absolute; left: 6px; top: 6px; width: calc(100% - 12px); height: calc(100% - 12px); display: block; }
   .bay { border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 1px solid #c9d6c9; background: #fff; padding: 6px; }
-  .bay .no { font-size: 46px; font-weight: 900; color: #15241b; line-height: 1.1; }
-  .bay .st { font-size: 21px; font-weight: 800; color: #1d6b40; font-variant-numeric: tabular-nums; }
+  .bay .no { font-size: 44px; font-weight: 900; color: #15241b; line-height: 1.1; }
+  .bay .st { font-size: 19px; font-weight: 800; color: #1d6b40; font-variant-numeric: tabular-nums; text-align: center; line-height: 1.3; }
+  .mapbox .walk { animation: walk 1.2s linear infinite; }
+  @keyframes walk { to { stroke-dashoffset: -24; } }
   .bay.sel { border: 3px solid #0e3b24; background: #eef5ee; }
   .bay.sel .no { color: #0e3b24; }
   .bay:disabled { background: #f5f2ea; border: 1px solid #e0dccd; cursor: default; }
@@ -156,6 +159,7 @@
       <div id="direct" style="display:flex;flex-direction:column;gap:10px;flex-grow:1">
         <div class="sub-h"><h2>3. 타석 선택</h2><span class="chip">1인 1타석</span></div>
         <div id="bayGrid"></div>
+        <div class="mapbox" id="mapBox" aria-hidden="true"></div>
       </div>
 
       <div id="waitBox">
@@ -209,6 +213,62 @@ function poll() {
 function nowSrv() { return st.now + (Date.now() - stAt); }
 function rem(b) { return b.endAt ? Math.max(0, Math.round((b.endAt - nowSrv()) / 1000)) : 0; }
 
+
+/* ---------- 룸 평면도 ----------
+   1·2·3번: 스크린이 위쪽 벽 (위를 보고 침)
+   4번: 1~3번과 같은 크기, 스크린만 오른쪽 (오른쪽을 보고 침)
+   고른 타석이 초록으로 칠해지고, 현위치에서 그 타석 매트까지 가는 길이 점선으로 표시됨 */
+var BAY_W = 138, BAY_H = 104, DOOR_Y = 240, mapSel = -1;
+//          x,   y,  가로,  세로,  스크린 방향
+var BAYS = { 1: [150, 30, BAY_W, BAY_H, 'up'], 2: [298, 30, BAY_W, BAY_H, 'up'], 3: [446, 30, BAY_W, BAY_H, 'up'],
+             4: [446, DOOR_Y - BAY_H / 2, BAY_W, BAY_H, 'right'] };   // 1~3번과 같은 크기, 오른쪽 끝선은 3번과 맞춤
+function drawMap(sel) {
+  if (sel === mapSel) return;   // 선택이 바뀔 때만 다시 그림
+  mapSel = sel;
+  var o = '<svg viewBox="0 0 640 340" preserveAspectRatio="xMidYMid meet">';
+  o += '<defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#c9a24b"/></marker></defs>';
+  // 방 (바닥 + 두꺼운 벽)
+  o += '<rect x="126" y="12" width="500" height="316" rx="10" fill="#f4f1e8" stroke="#4a463c" stroke-width="7"/>';
+  // 문: 왼쪽 벽을 뚫고, 문짝 + 열리는 궤적
+  o += '<rect x="118" y="' + (DOOR_Y - 26) + '" width="16" height="56" fill="#faf8f2"/>';
+  o += '<line x1="126" y1="' + (DOOR_Y - 28) + '" x2="174" y2="' + (DOOR_Y - 28) + '" stroke="#4a463c" stroke-width="4" stroke-linecap="round"/>';
+  o += '<path d="M174 ' + (DOOR_Y - 28) + ' A48 48 0 0 1 126 ' + (DOOR_Y + 20) + '" fill="none" stroke="#a39e8c" stroke-width="1.5" stroke-dasharray="3 4"/>';
+  o += '<text x="156" y="' + (DOOR_Y + 54) + '" font-size="15" font-weight="800" fill="#6b6658" text-anchor="middle">입구</text>';
+  // 타석
+  for (var n = 1; n <= 4; n++) {
+    var B = BAYS[n], x = B[0], y = B[1], w = B[2], h = B[3], dir = B[4], on = n === sel;
+    var scr = on ? '#c9a24b' : '#3a463e', mat = on ? '#3f7d4f' : '#d7e6d3';
+    o += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8" fill="' + (on ? '#0e3b24' : '#ffffff') + '" stroke="' + (on ? '#c9a24b' : '#c4bead') + '" stroke-width="' + (on ? 4 : 2) + '"/>';
+    if (dir === 'up') {        // 스크린 위, 매트 아래
+      o += '<rect x="' + (x + 10) + '" y="' + (y + 7) + '" width="' + (w - 20) + '" height="7" rx="3" fill="' + scr + '"/>';
+      o += '<rect x="' + (x + w / 2 - 22) + '" y="' + (y + h - 32) + '" width="44" height="22" rx="3" fill="' + mat + '"/>';
+      o += '<circle cx="' + (x + w / 2) + '" cy="' + (y + h - 21) + '" r="3.5" fill="#fff" stroke="' + (on ? 'none' : '#a39e8c') + '"/>';
+      o += '<text x="' + (x + w / 2) + '" y="' + (y + 58) + '" font-size="36" font-weight="900" fill="' + (on ? '#fff' : '#3a3a34') + '" text-anchor="middle">' + n + '</text>';
+    } else {                   // 스크린 오른쪽, 매트 왼쪽
+      o += '<rect x="' + (x + w - 14) + '" y="' + (y + 10) + '" width="7" height="' + (h - 20) + '" rx="3" fill="' + scr + '"/>';
+      o += '<rect x="' + (x + 10) + '" y="' + (y + h / 2 - 22) + '" width="22" height="44" rx="3" fill="' + mat + '"/>';
+      o += '<circle cx="' + (x + 21) + '" cy="' + (y + h / 2) + '" r="3.5" fill="#fff" stroke="' + (on ? 'none' : '#a39e8c') + '"/>';
+      o += '<text x="' + (x + w / 2 + 8) + '" y="' + (y + h / 2 + 13) + '" font-size="36" font-weight="900" fill="' + (on ? '#fff' : '#3a3a34') + '" text-anchor="middle">' + n + '</text>';
+    }
+  }
+  // 현위치 → 고른 타석 매트 쪽까지 길 안내
+  if (BAYS[sel]) {
+    var S = BAYS[sel], d;
+    if (S[4] === 'right') d = 'M96 ' + DOOR_Y + ' L' + (S[0] - 8) + ' ' + DOOR_Y;     // 4번: 문에서 오른쪽으로 쭉
+    else {                                                                              // 1~3번: 문 → 통로 → 타석 앞
+      var aisle = S[1] + S[3] + 19, cx = S[0] + S[2] / 2;
+      d = 'M96 ' + DOOR_Y + ' L196 ' + DOOR_Y + ' L196 ' + aisle + ' L' + cx + ' ' + aisle + ' L' + cx + ' ' + (S[1] + S[3] + 8);
+    }
+    o += '<path class="walk" d="' + d + '" fill="none" stroke="#c9a24b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 10" marker-end="url(#ar)"/>';
+  }
+  // 대기소 · 현위치
+  o += '<circle cx="80" cy="' + DOOR_Y + '" r="20" fill="#2f6fd6" opacity=".15"/>';
+  o += '<circle cx="80" cy="' + DOOR_Y + '" r="10" fill="#2f6fd6" stroke="#fff" stroke-width="3"/>';
+  o += '<text x="80" y="' + (DOOR_Y - 30) + '" font-size="18" font-weight="800" fill="#2f6fd6" text-anchor="middle">현위치</text>';
+  o += '<text x="80" y="' + (DOOR_Y + 44) + '" font-size="15" font-weight="700" fill="#6b6658" text-anchor="middle">대기소</text>';
+  document.getElementById('mapBox').innerHTML = o + '</svg>';
+}
+
 function render() {
   if (!st) return;
   // 호출 배너
@@ -244,11 +304,6 @@ function render() {
     if (frees.indexOf(selBay) < 0) selBay = frees[0];
     var g = document.getElementById('bayGrid'); g.innerHTML = '';
     st.bays.forEach(function (b) {
-      if (b.no === 4) {
-        var door = document.createElement('div'); door.className = 'door';
-        door.innerHTML = '<b>⟵ 입구</b><span>현재 위치 · 체크인 태블릿</span>';
-        g.appendChild(door);
-      }
       var btn = document.createElement('button'); btn.className = 'bay';
       if (b.status === 'free') {
         if (b.no === selBay) btn.className += ' sel';
@@ -256,11 +311,12 @@ function render() {
         btn.onclick = function () { selBay = b.no; render(); };
       } else {
         btn.disabled = true;
-        var label = b.status === 'held' ? '입장 대기 중' : ('사용 중 · ' + mmss(rem(b)));
+        var label = b.status === 'held' ? '입장 대기' : ('사용 중<br>' + mmss(rem(b)));
         btn.innerHTML = '<div class="no">' + b.no + '번</div><div class="st">' + label + '</div>';
       }
       g.appendChild(btn);
     });
+    drawMap(selBay);
   } else {
     document.getElementById('waitTitle').textContent = frees.length
       ? '3. 대기 고객 입장 순서입니다 — 대기 등록'
