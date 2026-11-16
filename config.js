@@ -74,15 +74,24 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
   navigator.serviceWorker.register('sw.js').catch(function () {});
 }
 
-// 번호 4자리 칸: 숫자만 입력되게 하고, 4자리를 다 누르면 키패드를 자동으로 내림
-// 잘못 눌렀을 때: 칸을 다시 누르면 번호가 지워지고 처음부터 입력
+// 번호 4자리: 화면 숫자 키패드로 입력 (태블릿 기본 키보드는 안 뜸)
+//  - 4자리가 차면 더 눌러도 입력 안 됨
+//  - 번호 칸을 누르거나 [초기화]를 누르면 처음부터 다시 입력
 document.addEventListener('DOMContentLoaded', function () {
   var el = document.getElementById('id4');
+  var pad = document.getElementById('pad');
   if (!el) return;
-  el.addEventListener('focus', function () { el.value = ''; });
-  el.addEventListener('input', function () {
-    var v = el.value.replace(/\D/g, '').slice(0, 4);
-    if (v !== el.value) el.value = v;
-    if (v.length === 4) el.blur();
+  el.addEventListener('click', function () { el.value = ''; el.blur(); });
+  if (!pad) return;
+  ['1','2','3','4','5','6','7','8','9','초기화','0','←'].forEach(function (k) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = k;
+    if (k === '초기화' || k === '←') b.className = 'fn';
+    b.addEventListener('click', function () {
+      if (k === '초기화') el.value = '';
+      else if (k === '←') el.value = el.value.slice(0, -1);
+      else if (el.value.length < 4) el.value += k;
+    });
+    pad.appendChild(b);
   });
 });
