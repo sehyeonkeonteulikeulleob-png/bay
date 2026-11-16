@@ -156,10 +156,9 @@
 
     <!-- 우측: 타석 / 대기 + 시간 -->
     <div class="card right">
-      <div id="direct" style="display:flex;flex-direction:column;gap:10px;flex-grow:1">
+      <div id="direct" style="display:flex;flex-direction:column;gap:10px">
         <div class="sub-h"><h2>3. 타석 선택</h2><span class="chip">1인 1타석</span></div>
         <div id="bayGrid"></div>
-        <div class="mapbox" id="mapBox" aria-hidden="true"></div>
       </div>
 
       <div id="waitBox">
@@ -171,6 +170,9 @@
 
       <h2>4. 이용 시간</h2>
       <div id="mins"></div>
+
+      <!-- 룸 안내도: 선택한 타석 위치 표시 (대기 등록 화면에서는 숨김) -->
+      <div class="mapbox" id="mapBox" aria-hidden="true"></div>
 
       <button id="go" onclick="submit()">시작</button>
     </div>
@@ -299,6 +301,7 @@ function render() {
   direct = frees.length > 0 && !st.waiting.length && !st.calls.length;
   document.getElementById('direct').style.display = direct ? 'flex' : 'none';
   document.getElementById('waitBox').style.display = direct ? 'none' : 'flex';
+  document.getElementById('mapBox').style.display = direct ? '' : 'none';
 
   if (direct) {
     if (frees.indexOf(selBay) < 0) selBay = frees[0];
