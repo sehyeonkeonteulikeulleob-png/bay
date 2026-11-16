@@ -98,21 +98,30 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
-// 클릭 소리: 파일 없이 브라우저에서 짧은 '딸깍' 소리를 만들어 재생
-var _ac = null;
+// 클릭 소리: 키보드 키를 누를 때 나는 짧은 '톡' 소리 (소리 파일 없이 브라우저에서 생성)
+var _ac = null, _clickBuf = null;
 function clickSound() {
   if (!CLICK_SOUND) return;
   try {
     if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
     if (_ac.state === 'suspended') _ac.resume();
-    var t = _ac.currentTime, o = _ac.createOscillator(), g = _ac.createGain();
-    o.type = 'square';
-    o.frequency.setValueAtTime(1800, t);
-    o.frequency.exponentialRampToValueAtTime(900, t + 0.03);
-    g.gain.setValueAtTime(0.12, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
-    o.connect(g); g.connect(_ac.destination);
-    o.start(t); o.stop(t + 0.06);
+    var sr = _ac.sampleRate, t = _ac.currentTime;
+    if (!_clickBuf) {                       // 아주 짧은(25ms) 잡음 → 키 '딸깍' 질감
+      var len = Math.floor(sr * 0.025);
+      _clickBuf = _ac.createBuffer(1, len, sr);
+      var d = _clickBuf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 8);
+    }
+    var src = _ac.createBufferSource(); src.buffer = _clickBuf;
+    var bp = _ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2800; bp.Q.value = 0.8;
+    var g = _ac.createGain(); g.gain.value = 0.9;
+    src.connect(bp); bp.connect(g); g.connect(_ac.destination);
+    src.start(t);
+    var o = _ac.createOscillator(), g2 = _ac.createGain();   // 키가 바닥에 닿는 낮은 '톡'
+    o.type = 'sine'; o.frequency.value = 180;
+    g2.gain.setValueAtTime(0.18, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+    o.connect(g2); g2.connect(_ac.destination);
+    o.start(t); o.stop(t + 0.03);
   } catch (e) {}
 }
 document.addEventListener('pointerdown', function (e) {
