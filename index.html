@@ -195,7 +195,8 @@ function rem(b) { return b.endAt ? Math.max(0, Math.round((b.endAt - nowSrv()) /
    1·2·3번: 스크린이 위쪽 벽 (위를 보고 침)
    4번: 1~3번과 같은 크기, 스크린만 오른쪽 (오른쪽을 보고 침)
    이용 가능한 타석을 누르면 초록으로 칠해지고, 현위치에서 그 타석까지 가는 길이 점선으로 표시됨
-   사용 중인 타석은 남은 시간이 표시되고 누를 수 없음 */
+   사용 중인 타석은 남은 시간이 표시되고 누를 수 없음
+   바닥 안전선(노랑·검정 띠)도 실제 위치대로 표시 */
 var BAY_W = 150, BAY_H = 150, DOOR_Y = 302, mapKey = '';
 //          x,   y,  가로,  세로,  스크린 방향
 var BAYS = { 1: [136, 28, BAY_W, BAY_H, 'up'], 2: [298, 28, BAY_W, BAY_H, 'up'], 3: [460, 28, BAY_W, BAY_H, 'up'],
@@ -211,7 +212,8 @@ function drawMap(sel) {
   if (key !== mapKey) {   // 선택·상태가 바뀔 때만 다시 그림 (남은 시간 숫자는 아래에서 글자만 갱신)
     mapKey = key;
     var o = '<svg viewBox="0 0 640 406" preserveAspectRatio="xMidYMid meet">';
-    o += '<defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#c9a24b"/></marker></defs>';
+    o += '<defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#c9a24b"/></marker>'
+       + '<pattern id="tape" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="14" height="14" fill="#0e3b24"/><rect width="7" height="14" fill="#d9b25a"/></pattern></defs>';
     // 방 (바닥 + 두꺼운 벽)
     o += '<rect x="100" y="10" width="530" height="386" rx="10" fill="#f4f1e8" stroke="#4a463c" stroke-width="7"/>';
     // 문: 왼쪽 벽을 뚫고, 문짝 + 열리는 궤적
@@ -219,6 +221,16 @@ function drawMap(sel) {
     o += '<line x1="100" y1="' + (DOOR_Y - 28) + '" x2="148" y2="' + (DOOR_Y - 28) + '" stroke="#4a463c" stroke-width="4" stroke-linecap="round"/>';
     o += '<path d="M148 ' + (DOOR_Y - 28) + ' A48 48 0 0 1 100 ' + (DOOR_Y + 20) + '" fill="none" stroke="#a39e8c" stroke-width="1.5" stroke-dasharray="3 4"/>';
     o += '<text x="132" y="' + (DOOR_Y + 54) + '" font-size="15" font-weight="800" fill="#6b6658" text-anchor="middle">입구</text>';
+    // 바닥 안전선 (노랑·검정 띠): 1~3번 타석 앞을 가로로, 4번 타석 왼쪽을 세로로 — 스윙 위험 구역 표시
+    //   가로선: 3번 타석과 4번 타석 사이 한가운데 / 세로선: 2번 타석 한가운데에서 아래로
+    var TAPE_W = 10, TAPE_Y = Math.round((BAYS[3][1] + BAYS[3][3] + BAYS[4][1]) / 2 - TAPE_W / 2), TAPE_X = BAYS[2][0] + BAYS[2][2] / 2 - TAPE_W / 2;
+    // 스윙 구역(안전선 안쪽)은 연한 금색으로 은은하게
+    o += '<rect x="104" y="14" width="522" height="' + (TAPE_Y - 14) + '" fill="#f3e6c4" opacity=".55"/>';
+    o += '<rect x="' + (TAPE_X + TAPE_W) + '" y="' + TAPE_Y + '" width="' + (626 - TAPE_X - TAPE_W) + '" height="' + (392 - TAPE_Y) + '" fill="#f3e6c4" opacity=".55"/>';
+    // 안전선: 딥그린·골드 사선 (체크인 화면 색과 맞춤)
+    o += '<rect x="104" y="' + TAPE_Y + '" width="522" height="' + TAPE_W + '" fill="url(#tape)"/>';
+    o += '<rect x="' + TAPE_X + '" y="' + TAPE_Y + '" width="' + TAPE_W + '" height="' + (392 - TAPE_Y) + '" fill="url(#tape)"/>';
+    o += '<text x="' + (TAPE_X - 8) + '" y="380" font-size="13" font-weight="800" fill="#8a6a22" text-anchor="end">안전선 · 스윙 구역 주의</text>';
     // 타석
     st.bays.forEach(function (b) {
       var B = BAYS[b.no]; if (!B) return;
@@ -246,8 +258,11 @@ function drawMap(sel) {
       var S = BAYS[sel], d;
       if (S[4] === 'right') d = 'M70 ' + DOOR_Y + ' L' + (S[0] - 8) + ' ' + DOOR_Y;       // 4번: 문에서 오른쪽으로 쭉
       else {                                                                                // 1~3번: 문 → 통로 → 타석 앞
-        var aisle = S[1] + S[3] + 20, cx = S[0] + S[2] / 2;
-        d = 'M70 ' + DOOR_Y + ' L172 ' + DOOR_Y + ' L172 ' + aisle + ' L' + cx + ' ' + aisle + ' L' + cx + ' ' + (S[1] + S[3] + 8);
+        var aisle = TAPE_Y + TAPE_W + 16, cx = S[0] + S[2] / 2, front = S[1] + S[3] + 8;
+        d = 'M70 ' + DOOR_Y + ' L172 ' + DOOR_Y + ' L172 ' + aisle;
+        if (Math.abs(cx - TAPE_X - TAPE_W / 2) < 30) d += ' L' + (TAPE_X - 16) + ' ' + aisle + ' L' + (TAPE_X - 16) + ' ' + front;   // 2번: 세로선 바로 옆으로 올라감
+        else if (cx < TAPE_X) d += ' L' + cx + ' ' + aisle + ' L' + cx + ' ' + front;            // 1·2번: 통로 → 안전선 넘어 타석 앞
+        else d += ' L' + (TAPE_X - 18) + ' ' + aisle + ' L' + (TAPE_X - 18) + ' ' + (front + 2) + ' L' + cx + ' ' + (front + 2) + ' L' + cx + ' ' + (front - 1);   // 2·3번: 세로선 왼쪽에서 안전선을 넘어 타석 앞으로
       }
       o += '<path class="walk" d="' + d + '" fill="none" stroke="#c9a24b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 10" marker-end="url(#ar)" pointer-events="none"/>';
     }
