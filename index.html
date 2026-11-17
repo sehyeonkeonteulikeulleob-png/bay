@@ -258,11 +258,10 @@ function drawMap(sel) {
       var S = BAYS[sel], d;
       if (S[4] === 'right') d = 'M70 ' + DOOR_Y + ' L' + (S[0] - 8) + ' ' + DOOR_Y;       // 4번: 문에서 오른쪽으로 쭉
       else {                                                                                // 1~3번: 문 → 통로 → 타석 앞
-        var aisle = TAPE_Y + TAPE_W + 16, cx = S[0] + S[2] / 2, front = S[1] + S[3] + 8;
-        d = 'M70 ' + DOOR_Y + ' L172 ' + DOOR_Y + ' L172 ' + aisle;
-        if (Math.abs(cx - TAPE_X - TAPE_W / 2) < 30) d += ' L' + (TAPE_X - 16) + ' ' + aisle + ' L' + (TAPE_X - 16) + ' ' + front;   // 2번: 세로선 바로 옆으로 올라감
-        else if (cx < TAPE_X) d += ' L' + cx + ' ' + aisle + ' L' + cx + ' ' + front;            // 1·2번: 통로 → 안전선 넘어 타석 앞
-        else d += ' L' + (TAPE_X - 18) + ' ' + aisle + ' L' + (TAPE_X - 18) + ' ' + (front + 2) + ' L' + cx + ' ' + (front + 2) + ' L' + cx + ' ' + (front - 1);   // 2·3번: 세로선 왼쪽에서 안전선을 넘어 타석 앞으로
+        var aisle = TAPE_Y + TAPE_W + 10, cx = S[0] + S[2] / 2, front = S[1] + S[3] + 8;
+        if (Math.abs(cx - TAPE_X - TAPE_W / 2) < 30) cx = TAPE_X - 16;   // 2번: 세로선 바로 옆으로 올라감
+        // 1·2·3번 모두: 안전선 바깥(뒤쪽) 통로로 걷다가, 자기 타석 앞에서만 안전선을 넘어 들어감
+        d = 'M70 ' + DOOR_Y + ' L172 ' + DOOR_Y + ' L172 ' + aisle + ' L' + cx + ' ' + aisle + ' L' + cx + ' ' + front;
       }
       o += '<path class="walk" d="' + d + '" fill="none" stroke="#c9a24b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 10" marker-end="url(#ar)" pointer-events="none"/>';
     }
