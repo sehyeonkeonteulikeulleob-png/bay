@@ -45,7 +45,7 @@
   .agree input { width: 24px; height: 24px; accent-color: #0e3b24; flex-shrink: 0; }
   .agree label { font-size: 16px; font-weight: 700; color: #15241b; }
   .step { flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
-  .left .rules { margin: 0; padding-left: 30px; font-size: 21px; line-height: 1.6; color: #2f2d28; display: flex; flex-direction: column; justify-content: center; gap: 18px; flex-grow: 1; }
+  .left .rules { margin: 0; padding-left: 38px; font-size: clamp(18px, min(3.3vh, 2.05vw), 36px); line-height: 1.5; word-break: keep-all; min-height: 0; overflow: auto; color: #2f2d28; display: flex; flex-direction: column; justify-content: safe center; gap: clamp(8px, 2vh, 22px); flex-grow: 1; }
   .left .rules li::marker { font-weight: 900; color: #0e3b24; }
   .agreeBtn { min-height: 76px; flex-shrink: 0; border: none; border-radius: 14px; background: #0e3b24; color: #f7f4ec; font-size: 21px; font-weight: 900; }
   .agreed { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #f2f7f0; border: 1px solid #cfdccf; border-radius: 10px; padding: 6px 8px 6px 14px; font-size: 15px; font-weight: 700; color: #1d6b40; flex-shrink: 0; }
@@ -68,32 +68,17 @@
 
   /* 우측 */
   .right { flex-grow: 1; min-width: 0; }
-  /* 실제 룸 배치: 윗줄 1·2·3번 / 아랫줄 왼쪽 입구(2칸), 오른쪽 4번 */
-  #bayGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; flex: 0 0 auto; height: clamp(120px, 22vh, 220px); }
-  /* 룸 안내도 (단순 도면) */
-  .mapbox { flex: 1 1 auto; position: relative; overflow: hidden; border: 1px solid #e0dccd; border-radius: 12px; background: #faf8f2; min-height: 140px; }
-  /* 칸 크기에 맞춰 안내도가 줄어들기만 하고, 칸을 밀어내지 않게 */
+  /* 룸 평면도 = 타석 선택 (평면도의 타석을 눌러서 고름) */
+  .mapbox { flex: 1 1 auto; position: relative; overflow: hidden; border: 1px solid #e0dccd; border-radius: 12px; background: #faf8f2; min-height: 160px; }
   .mapbox svg { position: absolute; left: 6px; top: 6px; width: calc(100% - 12px); height: calc(100% - 12px); display: block; }
-  .bay { border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 1px solid #c9d6c9; background: #fff; padding: 6px; }
-  .bay .no { font-size: 44px; font-weight: 900; color: #15241b; line-height: 1.1; }
-  .bay .st { font-size: 19px; font-weight: 800; color: #1d6b40; font-variant-numeric: tabular-nums; text-align: center; line-height: 1.3; }
+  .mapbox .pick { cursor: pointer; }
+  .mapbox text { font-variant-numeric: tabular-nums; }
   .mapbox .walk { animation: walk 1.2s linear infinite; }
   @keyframes walk { to { stroke-dashoffset: -24; } }
-  .bay.sel { border: 3px solid #0e3b24; background: #eef5ee; }
-  .bay.sel .no { color: #0e3b24; }
-  .bay:disabled { background: #f5f2ea; border: 1px solid #e0dccd; cursor: default; }
-  .bay:disabled .no { color: #8a8577; }
-  .bay:disabled .st { color: #a4493f; }
-
-  #waitBox { display: none; flex-direction: column; gap: 10px; flex-grow: 1; }
+  #waitBox { display: none; flex-direction: column; gap: 10px; }
   .fullMsg { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 900; color: #15241b; }
   .dot { width: 12px; height: 12px; border-radius: 50%; background: #c2463b; flex-shrink: 0; }
-  #miniBays { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; flex-grow: 1; min-height: 90px; }
-  .mini { border-radius: 10px; border: 1px solid #e8d8d5; background: #faf1ef; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-  .mini .no { font-size: 30px; font-weight: 900; color: #6b6458; }
-  .mini .st { font-size: 17px; font-weight: 800; color: #a4493f; font-variant-numeric: tabular-nums; }
-  .mini.held { border-color: #c9d6e6; background: #eef3f9; } .mini.held .st { color: #35557a; }
-  .waitInfo { background: #f2f7f0; border: 1px solid #cfdccf; border-radius: 10px; padding: 10px 14px; font-size: 14px; color: #44423c; }
+  .waitInfo { display: none; flex-shrink: 0; background: #f2f7f0; border: 1px solid #cfdccf; border-radius: 10px; padding: 10px 14px; font-size: 14px; color: #44423c; }
 
   #mins { display: flex; gap: 8px; }
   #mins button { flex: 1; min-height: 54px; border-radius: 10px; border: 1px solid #c9d6c9; background: #fff; font-size: 17px; font-weight: 700; color: #15241b; }
@@ -154,22 +139,15 @@
 
     <!-- 우측: 타석 / 대기 + 시간 -->
     <div class="card right">
-      <div id="direct" style="display:flex;flex-direction:column;gap:10px">
-        <div class="sub-h"><h2>3. 타석 선택</h2><span class="chip">1인 1타석</span></div>
-        <div id="bayGrid"></div>
-      </div>
+      <div id="direct" class="sub-h"><h2>3. 타석 선택</h2><span class="chip">평면도에서 타석을 눌러 주세요</span></div>
+      <div id="waitBox"><div class="fullMsg"><span class="dot"></span><span id="waitTitle">3. 현재 모든 타석이 사용 중입니다 — 대기 등록</span></div></div>
 
-      <div id="waitBox">
-        <div class="fullMsg"><span class="dot"></span><span id="waitTitle">3. 현재 모든 타석이 사용 중입니다 — 대기 등록</span></div>
-        <div id="miniBays"></div>
-        <div class="waitInfo" id="waitInfo">자리가 나면 현황판과 음성으로 안내됩니다.</div>
-      </div>
+      <!-- 룸 평면도: 여기서 타석을 눌러 선택 (사용 중인 타석은 남은 시간 표시) -->
+      <div class="mapbox" id="mapBox"></div>
+      <div class="waitInfo" id="waitInfo">자리가 나면 현황판과 음성으로 안내됩니다.</div>
 
       <h2>4. 이용 시간</h2>
       <div id="mins"></div>
-
-      <!-- 룸 안내도: 선택한 타석 위치 표시 (대기 등록 화면에서는 숨김) -->
-      <div class="mapbox" id="mapBox" aria-hidden="true"></div>
 
       <button id="go" onclick="submit()">시작</button>
     </div>
@@ -213,60 +191,88 @@ function nowSrv() { return st.now + (Date.now() - stAt); }
 function rem(b) { return b.endAt ? Math.max(0, Math.round((b.endAt - nowSrv()) / 1000)) : 0; }
 
 
-/* ---------- 룸 평면도 ----------
+/* ---------- 룸 평면도 = 타석 선택 ----------
    1·2·3번: 스크린이 위쪽 벽 (위를 보고 침)
    4번: 1~3번과 같은 크기, 스크린만 오른쪽 (오른쪽을 보고 침)
-   고른 타석이 초록으로 칠해지고, 현위치에서 그 타석 매트까지 가는 길이 점선으로 표시됨 */
-var BAY_W = 138, BAY_H = 104, DOOR_Y = 240, mapSel = -1;
+   이용 가능한 타석을 누르면 초록으로 칠해지고, 현위치에서 그 타석까지 가는 길이 점선으로 표시됨
+   사용 중인 타석은 남은 시간이 표시되고 누를 수 없음 */
+var BAY_W = 150, BAY_H = 150, DOOR_Y = 302, mapKey = '';
 //          x,   y,  가로,  세로,  스크린 방향
-var BAYS = { 1: [150, 30, BAY_W, BAY_H, 'up'], 2: [298, 30, BAY_W, BAY_H, 'up'], 3: [446, 30, BAY_W, BAY_H, 'up'],
-             4: [446, DOOR_Y - BAY_H / 2, BAY_W, BAY_H, 'right'] };   // 1~3번과 같은 크기, 오른쪽 끝선은 3번과 맞춤
+var BAYS = { 1: [136, 28, BAY_W, BAY_H, 'up'], 2: [298, 28, BAY_W, BAY_H, 'up'], 3: [460, 28, BAY_W, BAY_H, 'up'],
+             4: [460, DOOR_Y - BAY_H / 2, BAY_W, BAY_H, 'right'] };   // 오른쪽 끝선은 3번과 맞춤
+var LOOK = {   //        바탕,      테두리,    번호,      글자,      스크린,    매트
+  free: ['#ffffff', '#9dbf9d', '#15241b', '#1d6b40', '#3a463e', '#d7e6d3'],
+  sel:  ['#0e3b24', '#c9a24b', '#ffffff', '#e6c877', '#c9a24b', '#3f7d4f'],
+  busy: ['#f3ece6', '#dccfc8', '#a09a8c', '#a4493f', '#b9b3a4', '#e6dfd6'],
+  held: ['#eef3f9', '#c9d6e6', '#7d8794', '#35557a', '#aab4c0', '#dbe4ee'] };
+function bayLook(b, sel) { return b.status === 'free' ? (b.no === sel ? 'sel' : 'free') : (b.status === 'held' ? 'held' : 'busy'); }
 function drawMap(sel) {
-  if (sel === mapSel) return;   // 선택이 바뀔 때만 다시 그림
-  mapSel = sel;
-  var o = '<svg viewBox="0 0 640 340" preserveAspectRatio="xMidYMid meet">';
-  o += '<defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#c9a24b"/></marker></defs>';
-  // 방 (바닥 + 두꺼운 벽)
-  o += '<rect x="126" y="12" width="500" height="316" rx="10" fill="#f4f1e8" stroke="#4a463c" stroke-width="7"/>';
-  // 문: 왼쪽 벽을 뚫고, 문짝 + 열리는 궤적
-  o += '<rect x="118" y="' + (DOOR_Y - 26) + '" width="16" height="56" fill="#faf8f2"/>';
-  o += '<line x1="126" y1="' + (DOOR_Y - 28) + '" x2="174" y2="' + (DOOR_Y - 28) + '" stroke="#4a463c" stroke-width="4" stroke-linecap="round"/>';
-  o += '<path d="M174 ' + (DOOR_Y - 28) + ' A48 48 0 0 1 126 ' + (DOOR_Y + 20) + '" fill="none" stroke="#a39e8c" stroke-width="1.5" stroke-dasharray="3 4"/>';
-  o += '<text x="156" y="' + (DOOR_Y + 54) + '" font-size="15" font-weight="800" fill="#6b6658" text-anchor="middle">입구</text>';
-  // 타석
-  for (var n = 1; n <= 4; n++) {
-    var B = BAYS[n], x = B[0], y = B[1], w = B[2], h = B[3], dir = B[4], on = n === sel;
-    var scr = on ? '#c9a24b' : '#3a463e', mat = on ? '#3f7d4f' : '#d7e6d3';
-    o += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8" fill="' + (on ? '#0e3b24' : '#ffffff') + '" stroke="' + (on ? '#c9a24b' : '#c4bead') + '" stroke-width="' + (on ? 4 : 2) + '"/>';
-    if (dir === 'up') {        // 스크린 위, 매트 아래
-      o += '<rect x="' + (x + 10) + '" y="' + (y + 7) + '" width="' + (w - 20) + '" height="7" rx="3" fill="' + scr + '"/>';
-      o += '<rect x="' + (x + w / 2 - 22) + '" y="' + (y + h - 32) + '" width="44" height="22" rx="3" fill="' + mat + '"/>';
-      o += '<circle cx="' + (x + w / 2) + '" cy="' + (y + h - 21) + '" r="3.5" fill="#fff" stroke="' + (on ? 'none' : '#a39e8c') + '"/>';
-      o += '<text x="' + (x + w / 2) + '" y="' + (y + 58) + '" font-size="36" font-weight="900" fill="' + (on ? '#fff' : '#3a3a34') + '" text-anchor="middle">' + n + '</text>';
-    } else {                   // 스크린 오른쪽, 매트 왼쪽
-      o += '<rect x="' + (x + w - 14) + '" y="' + (y + 10) + '" width="7" height="' + (h - 20) + '" rx="3" fill="' + scr + '"/>';
-      o += '<rect x="' + (x + 10) + '" y="' + (y + h / 2 - 22) + '" width="22" height="44" rx="3" fill="' + mat + '"/>';
-      o += '<circle cx="' + (x + 21) + '" cy="' + (y + h / 2) + '" r="3.5" fill="#fff" stroke="' + (on ? 'none' : '#a39e8c') + '"/>';
-      o += '<text x="' + (x + w / 2 + 8) + '" y="' + (y + h / 2 + 13) + '" font-size="36" font-weight="900" fill="' + (on ? '#fff' : '#3a3a34') + '" text-anchor="middle">' + n + '</text>';
+  var key = (direct ? 'd' : 'w') + sel + st.bays.map(function (b) { return b.status; }).join();
+  if (key !== mapKey) {   // 선택·상태가 바뀔 때만 다시 그림 (남은 시간 숫자는 아래에서 글자만 갱신)
+    mapKey = key;
+    var o = '<svg viewBox="0 0 640 406" preserveAspectRatio="xMidYMid meet">';
+    o += '<defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#c9a24b"/></marker></defs>';
+    // 방 (바닥 + 두꺼운 벽)
+    o += '<rect x="100" y="10" width="530" height="386" rx="10" fill="#f4f1e8" stroke="#4a463c" stroke-width="7"/>';
+    // 문: 왼쪽 벽을 뚫고, 문짝 + 열리는 궤적
+    o += '<rect x="92" y="' + (DOOR_Y - 26) + '" width="16" height="56" fill="#faf8f2"/>';
+    o += '<line x1="100" y1="' + (DOOR_Y - 28) + '" x2="148" y2="' + (DOOR_Y - 28) + '" stroke="#4a463c" stroke-width="4" stroke-linecap="round"/>';
+    o += '<path d="M148 ' + (DOOR_Y - 28) + ' A48 48 0 0 1 100 ' + (DOOR_Y + 20) + '" fill="none" stroke="#a39e8c" stroke-width="1.5" stroke-dasharray="3 4"/>';
+    o += '<text x="132" y="' + (DOOR_Y + 54) + '" font-size="15" font-weight="800" fill="#6b6658" text-anchor="middle">입구</text>';
+    // 타석
+    st.bays.forEach(function (b) {
+      var B = BAYS[b.no]; if (!B) return;
+      var x = B[0], y = B[1], w = B[2], h = B[3], up = B[4] === 'up', k = bayLook(b, direct ? sel : 0), L = LOOK[k];
+      var pick = direct && b.status === 'free';
+      var tx = up ? x + w / 2 : x + w / 2 + 8, ty = up ? y + 60 : y + h / 2;   // 번호 위치
+      o += '<g' + (pick ? ' class="pick" data-bay="' + b.no + '"' : '') + '>';
+      o += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8" fill="' + L[0] + '" stroke="' + L[1] + '" stroke-width="' + (k === 'sel' ? 4 : 2) + '"/>';
+      if (up) {        // 스크린 위, 매트 아래
+        o += '<rect x="' + (x + 10) + '" y="' + (y + 7) + '" width="' + (w - 20) + '" height="7" rx="3" fill="' + L[4] + '"/>';
+        o += '<rect x="' + (x + w / 2 - 22) + '" y="' + (y + h - 28) + '" width="44" height="20" rx="3" fill="' + L[5] + '"/>';
+        o += '<circle cx="' + (x + w / 2) + '" cy="' + (y + h - 18) + '" r="3.5" fill="#fff"/>';
+      } else {         // 스크린 오른쪽, 매트 왼쪽
+        o += '<rect x="' + (x + w - 14) + '" y="' + (y + 10) + '" width="7" height="' + (h - 20) + '" rx="3" fill="' + L[4] + '"/>';
+        o += '<rect x="' + (x + 9) + '" y="' + (y + h / 2 - 22) + '" width="20" height="44" rx="3" fill="' + L[5] + '"/>';
+        o += '<circle cx="' + (x + 19) + '" cy="' + (y + h / 2) + '" r="3.5" fill="#fff"/>';
+      }
+      o += '<text x="' + tx + '" y="' + ty + '" font-size="44" font-weight="900" fill="' + L[2] + '" text-anchor="middle">' + b.no + '</text>';
+      o += '<text id="ms' + b.no + '" x="' + tx + '" y="' + (ty + 26) + '" font-size="19" font-weight="800" fill="' + L[3] + '" text-anchor="middle"></text>';
+      o += '<text id="mt' + b.no + '" x="' + tx + '" y="' + (ty + 49) + '" font-size="19" font-weight="800" fill="' + L[3] + '" text-anchor="middle"></text>';
+      o += '</g>';
+    });
+    // 현위치 → 고른 타석 매트 쪽까지 길 안내
+    if (direct && BAYS[sel]) {
+      var S = BAYS[sel], d;
+      if (S[4] === 'right') d = 'M70 ' + DOOR_Y + ' L' + (S[0] - 8) + ' ' + DOOR_Y;       // 4번: 문에서 오른쪽으로 쭉
+      else {                                                                                // 1~3번: 문 → 통로 → 타석 앞
+        var aisle = S[1] + S[3] + 20, cx = S[0] + S[2] / 2;
+        d = 'M70 ' + DOOR_Y + ' L172 ' + DOOR_Y + ' L172 ' + aisle + ' L' + cx + ' ' + aisle + ' L' + cx + ' ' + (S[1] + S[3] + 8);
+      }
+      o += '<path class="walk" d="' + d + '" fill="none" stroke="#c9a24b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 10" marker-end="url(#ar)" pointer-events="none"/>';
     }
+    // 대기소 · 현위치
+    o += '<circle cx="54" cy="' + DOOR_Y + '" r="20" fill="#2f6fd6" opacity=".15"/>';
+    o += '<circle cx="54" cy="' + DOOR_Y + '" r="10" fill="#2f6fd6" stroke="#fff" stroke-width="3"/>';
+    o += '<text x="54" y="' + (DOOR_Y - 30) + '" font-size="18" font-weight="800" fill="#2f6fd6" text-anchor="middle">현위치</text>';
+    o += '<text x="54" y="' + (DOOR_Y + 44) + '" font-size="15" font-weight="700" fill="#6b6658" text-anchor="middle">대기소</text>';
+    document.getElementById('mapBox').innerHTML = o + '</svg>';
   }
-  // 현위치 → 고른 타석 매트 쪽까지 길 안내
-  if (BAYS[sel]) {
-    var S = BAYS[sel], d;
-    if (S[4] === 'right') d = 'M96 ' + DOOR_Y + ' L' + (S[0] - 8) + ' ' + DOOR_Y;     // 4번: 문에서 오른쪽으로 쭉
-    else {                                                                              // 1~3번: 문 → 통로 → 타석 앞
-      var aisle = S[1] + S[3] + 19, cx = S[0] + S[2] / 2;
-      d = 'M96 ' + DOOR_Y + ' L196 ' + DOOR_Y + ' L196 ' + aisle + ' L' + cx + ' ' + aisle + ' L' + cx + ' ' + (S[1] + S[3] + 8);
-    }
-    o += '<path class="walk" d="' + d + '" fill="none" stroke="#c9a24b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 10" marker-end="url(#ar)"/>';
-  }
-  // 대기소 · 현위치
-  o += '<circle cx="80" cy="' + DOOR_Y + '" r="20" fill="#2f6fd6" opacity=".15"/>';
-  o += '<circle cx="80" cy="' + DOOR_Y + '" r="10" fill="#2f6fd6" stroke="#fff" stroke-width="3"/>';
-  o += '<text x="80" y="' + (DOOR_Y - 30) + '" font-size="18" font-weight="800" fill="#2f6fd6" text-anchor="middle">현위치</text>';
-  o += '<text x="80" y="' + (DOOR_Y + 44) + '" font-size="15" font-weight="700" fill="#6b6658" text-anchor="middle">대기소</text>';
-  document.getElementById('mapBox').innerHTML = o + '</svg>';
+  // 타석 안 글자 (매초 갱신)
+  st.bays.forEach(function (b) {
+    var a = document.getElementById('ms' + b.no), t = document.getElementById('mt' + b.no); if (!a) return;
+    if (b.status === 'busy') { a.textContent = '사용 중'; t.textContent = mmss(rem(b)); }
+    else if (b.status === 'held') { a.textContent = '입장 대기'; t.textContent = ''; }
+    else { a.textContent = (direct && b.no === sel) ? '선택 ✓' : '이용 가능'; t.textContent = ''; }
+  });
 }
+// 평면도의 타석을 누르면 선택
+(function () {
+  var box = document.getElementById('mapBox');
+  function hit(e) { var g = e.target && e.target.closest ? e.target.closest('[data-bay]') : null; return g ? Number(g.getAttribute('data-bay')) : 0; }
+  box.addEventListener('pointerdown', function (e) { if (hit(e)) clickSound(); });
+  box.addEventListener('click', function (e) { var n = hit(e); if (n) { selBay = n; render(); } });
+})();
 
 function render() {
   if (!st) return;
@@ -298,38 +304,17 @@ function render() {
   direct = frees.length > 0 && !st.waiting.length && !st.calls.length;
   document.getElementById('direct').style.display = direct ? 'flex' : 'none';
   document.getElementById('waitBox').style.display = direct ? 'none' : 'flex';
-  document.getElementById('mapBox').style.display = direct ? '' : 'none';
+  document.getElementById('waitInfo').style.display = direct ? 'none' : 'block';
 
   if (direct) {
     if (frees.indexOf(selBay) < 0) selBay = frees[0];
-    var g = document.getElementById('bayGrid'); g.innerHTML = '';
-    st.bays.forEach(function (b) {
-      var btn = document.createElement('button'); btn.className = 'bay';
-      if (b.status === 'free') {
-        if (b.no === selBay) btn.className += ' sel';
-        btn.innerHTML = '<div class="no">' + b.no + '번</div><div class="st">이용 가능' + (b.no === selBay ? ' ✓' : '') + '</div>';
-        btn.onclick = function () { selBay = b.no; render(); };
-      } else {
-        btn.disabled = true;
-        var label = b.status === 'held' ? '입장 대기' : ('사용 중<br>' + mmss(rem(b)));
-        btn.innerHTML = '<div class="no">' + b.no + '번</div><div class="st">' + label + '</div>';
-      }
-      g.appendChild(btn);
-    });
-    drawMap(selBay);
   } else {
     document.getElementById('waitTitle').textContent = frees.length
       ? '3. 대기 고객 입장 순서입니다 — 대기 등록'
       : '3. 현재 모든 타석이 사용 중입니다 — 대기 등록';
-    var mb = document.getElementById('miniBays'); mb.innerHTML = '';
-    st.bays.forEach(function (b) {
-      var d = document.createElement('div'); d.className = 'mini' + (b.status === 'held' ? ' held' : '');
-      var label = b.status === 'busy' ? mmss(rem(b)) + ' 남음' : (b.status === 'held' ? '입장 대기' : '이용 가능');
-      d.innerHTML = '<div class="no">' + b.no + '번</div><div class="st">' + label + '</div>';
-      mb.appendChild(d);
-    });
     document.getElementById('waitInfo').innerHTML = '현재 대기 <b>' + st.waiting.length + '명</b> · 자리가 나면 <b>입력한 번호</b>로 현황판과 음성에서 불러드립니다.';
   }
+  drawMap(selBay);
   drawGo();
 }
 function drawGo() {
