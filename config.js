@@ -12,7 +12,8 @@ var CLICK_SOUND = true;
 /*********************************************************************/
 
 // 화면을 터치하면 전체화면으로 전환 (주소창·상단바 숨김). 빠져나와도 다음 터치에 다시 꽉 참
-document.addEventListener('pointerup', function () {
+document.addEventListener('pointerup', function (e) {
+  if (e.target && e.target.closest && e.target.closest('[data-nofs]')) return;   // [작게 띄우기] 버튼은 전체화면 전환 안 함
   var d = document.documentElement;
   if (document.fullscreenElement || document.webkitFullscreenElement) return;
   var fn = d.requestFullscreen || d.webkitRequestFullscreen;
@@ -78,6 +79,49 @@ function callSpeech(c) { return whoSpeak(c.phone4) + ' 고객님, ' + bayWord(c.
 function mmss(sec) {
   var m = Math.floor(sec / 60), s = sec % 60;
   return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+// ---------- 작은 타이머 창 (항상 위) ----------
+// 크롬·엣지의 '문서 PIP' 기능: 다른 프로그램 위에 떠 있는 작은 창에 남은 시간만 보여줌
+//  - [작게 띄우기] 버튼을 눌러야 열림 (브라우저 규칙상 자동으로는 못 엶)
+//  - 이 타이머 페이지가 열려 있는 동안만 유지됨 (브라우저 창은 최소화해도 됨)
+var _mini = null;
+function miniSupported() { return 'documentPictureInPicture' in window; }
+function miniOpen() {
+  if (!miniSupported()) return Promise.resolve(false);
+  if (_mini) { _mini.close(); _mini = null; return Promise.resolve(false); }
+  return documentPictureInPicture.requestWindow({ width: 280, height: 160 }).then(function (w) {
+    _mini = w;
+    var d = w.document;
+    d.body.style.cssText = 'margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;' +
+      'font-family:"Noto Sans KR","Malgun Gothic",sans-serif;background:#0e3b24;color:#fff;user-select:none;overflow:hidden;transition:background .3s';
+    d.body.innerHTML = '<div id="mTop" style="font-size:13vh;font-weight:800;color:#e6c877"></div>' +
+                       '<div id="mTime" style="font-size:38vh;font-weight:900;line-height:1;font-variant-numeric:tabular-nums"></div>' +
+                       '<button id="mEnd" style="display:none;font:inherit;font-size:11vh;font-weight:800;border:0;border-radius:6px;padding:3vh 6vw;background:#f7f4ec;color:#15241b;cursor:pointer">먼저 끝났어요 (종료)</button>';
+    // [먼저 끝났어요] → 한 번 더 누르면 종료 (4초 안에 안 누르면 원래대로)
+    var eb = d.getElementById('mEnd'), armed = 0;
+    eb.onclick = function () {
+      if (Date.now() < armed) { armed = 0; eb.textContent = '종료 처리 중…'; if (window.onMiniEnd) onMiniEnd(); setTimeout(function () { eb.textContent = '먼저 끝났어요 (종료)'; eb.style.background = '#f7f4ec'; eb.style.color = '#15241b'; }, 4000); return; }
+      armed = Date.now() + 4000; eb.textContent = '한 번 더 누르면 종료'; eb.style.background = '#a4493f'; eb.style.color = '#fff';
+      setTimeout(function () { if (armed && Date.now() >= armed) { armed = 0; eb.textContent = '먼저 끝났어요 (종료)'; eb.style.background = '#f7f4ec'; eb.style.color = '#15241b'; } }, 4100);
+    };
+    w.addEventListener('pagehide', function () { _mini = null; if (window.onMiniChange) onMiniChange(false); });
+    if (window.onMiniChange) onMiniChange(true);
+    return true;
+  }).catch(function () { return false; });
+}
+// v = { top: '1번 타석 · 남은 시간', time: '04:59' 또는 '', level: 'busy' | 'warn' | 'end' | 'held' | 'free' }
+function miniUpdate(v) {
+  if (!_mini) return;
+  var d = _mini.document, top = d.getElementById('mTop'), time = d.getElementById('mTime');
+  if (!top) return;
+  var C = { busy: ['#0e3b24', '#e6c877', '#fff'], warn: ['#e3a93c', '#15241b', '#15241b'], end: ['#a4493f', '#fff', '#fff'],
+            held: ['#24405f', '#cfe0f5', '#fff'], free: ['#15241b', '#b9d8c2', '#fff'] }[v.level] || ['#0e3b24', '#e6c877', '#fff'];
+  d.body.style.background = C[0]; top.style.color = C[1]; time.style.color = C[2];
+  top.textContent = v.top; time.textContent = v.time || '';
+  time.style.display = v.time ? '' : 'none';
+  top.style.fontSize = v.time ? '13vh' : '20vh';
+  var eb = d.getElementById('mEnd'); if (eb) eb.style.display = (v.level === 'busy' || v.level === 'warn') ? '' : 'none';
 }
 
 // 앱 설치용 서비스워커 등록 (GitHub Pages 같은 보안 주소에서만 동작)

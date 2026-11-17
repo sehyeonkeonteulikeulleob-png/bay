@@ -6,7 +6,7 @@
 <title>타석 카운트다운 · SEHYEON CC</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="config.js?v=202611161800"></script>
+<script src="config.js?v=202611171430"></script>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #0d1710; color: #f2f0e8; height: 100vh; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 5vh 6vw; overflow: hidden; user-select: none; text-align: center; }
@@ -20,6 +20,8 @@
   #bar { height: 100%; background: #4cc07e; width: 0%; }
   .note { font-size: 2vh; color: #8fa193; line-height: 1.5; }
   #endBtn { font-family: inherit; min-height: 60px; border: 1px solid #2e4636; border-radius: 14px; background: #13251a; color: #b9c2b8; font-size: 2.4vh; font-weight: 700; padding: 1.5vh 5vw; cursor: pointer; margin-top: 1.5vh; }
+  #miniBtn { font-family: inherit; min-height: 52px; border: 1px solid #5a4a22; border-radius: 14px; background: transparent; color: #e6c877; font-size: 2.1vh; font-weight: 700; padding: 1.2vh 4vw; cursor: pointer; margin-top: 1.5vh; }
+  #miniBtn:disabled { border-color: #2e4636; color: #6f7d72; }
   #confirm { display: none; gap: 12px; justify-content: center; margin-top: 1.5vh; }
   #confirm button { font-family: inherit; min-height: 60px; border-radius: 14px; font-size: 2.4vh; font-weight: 900; padding: 1.5vh 6vw; border: none; }
   .st-busy { color: #e88d85; background: #2a1715; border-color: #553029; }
@@ -43,6 +45,7 @@
   <div>
     <div class="note">종료 직전과 종료 시 음성 안내가 나옵니다</div>
     <button id="endBtn" style="display:none" onclick="askEnd()">먼저 끝났어요 (조기 종료)</button>
+    <button id="miniBtn" data-nofs onclick="miniOpen()">작게 띄우기 (항상 위)</button>
     <div id="confirm">
       <button style="background:#e0594f;color:#fff" onclick="endNow()">종료하기</button>
       <button style="background:#1a2a1f;color:#b9c2b8" onclick="cancelEnd()">취소</button>
@@ -69,6 +72,7 @@ function render() {
     stateEl.textContent = '사용 중 · ' + durLabel(total) + ' 이용';
     document.getElementById('cap').textContent = '남은 시간';
     timeEl.textContent = mmss(r);
+    miniUpdate({ top: BAY + '번 타석 · ' + (r === 0 ? '이용 시간 종료' : r <= st.warnSec ? '곧 종료' : '남은 시간'), time: mmss(r), level: r === 0 ? 'end' : r <= st.warnSec ? 'warn' : 'busy' });
     document.getElementById('bar').style.width = Math.round(r / total * 100) + '%';
     if (document.getElementById('confirm').style.display !== 'flex') document.getElementById('endBtn').style.display = 'inline-block';
     var k = BAY + '-' + b.endAt;
@@ -80,6 +84,7 @@ function render() {
     stateEl.textContent = b.status === 'held' ? '입장 대기 중' : '이용 가능';
     document.getElementById('cap').textContent = b.status === 'held' ? '호출된 고객 입장 대기' : '입구 태블릿에서 체크인하세요';
     timeEl.textContent = '--:--';
+    miniUpdate({ top: BAY + '번 타석 · ' + (b.status === 'held' ? '입장 대기 중' : '이용 가능'), time: '', level: b.status === 'held' ? 'held' : 'free' });
     document.getElementById('bar').style.width = '100%';
     document.getElementById('endBtn').style.display = 'none';
     document.getElementById('confirm').style.display = 'none';
@@ -93,6 +98,13 @@ function endNow() {
   apiPost('end', { bay: BAY }).then(function () { busyCall = false; cancelEnd(); poll(); })
     .catch(function () { busyCall = false; });
 }
+// 작은 타이머 창 (다른 프로그램 위에 항상 떠 있음)
+(function () {
+  var b = document.getElementById('miniBtn');
+  if (!miniSupported()) { b.disabled = true; b.textContent = '작게 띄우기는 크롬·엣지에서만 됩니다'; }
+})();
+function onMiniEnd() { endNow(); }   // 작은 창의 [먼저 끝났어요] → 종료
+function onMiniChange(open) { document.getElementById('miniBtn').textContent = open ? '작은 창 닫기' : '작게 띄우기 (항상 위)'; if (open && st) render(); }
 setInterval(function () { if (st) render(); }, 1000);
 poll(); setInterval(poll, 10000);
 </script>
