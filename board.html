@@ -6,7 +6,7 @@
 <title>스크린 연습 타석 현황 · SEHYEON CC</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="config.js?v=202611171430"></script>
+<script src="config.js?v=202611190955"></script>
 <link rel="icon" href="icon-192.png">
 <style>
   * { box-sizing: border-box; }
@@ -100,7 +100,7 @@ function render() {
   var tickerMsg = '입구 태블릿에서 체크인해 주세요';
 
   st.bays.forEach(function (b) {
-    var r = remSec(b), total = b.endAt ? (b.endAt - b.startAt) / 1000 : 1;
+    var total = b.endAt ? playTotal(b) : 1, pr = prepLeft(b, nowSrv()), r = Math.min(remSec(b), total);
     var cls = b.status === 'free' ? 'free' : b.status === 'held' ? 'held' : (r <= st.warnSec ? 'warn' : 'busy');
     var d = document.createElement('div'); d.className = 'bay ' + cls;
     var html = '<div class="strip"></div><div class="body"><div class="no">' + b.no + '번 타석</div>';
@@ -111,7 +111,7 @@ function render() {
       html += '<div class="label">입장 대기</div><div class="sub">' + (c ? whoLabel(c.phone4) + ' 호출 중' : '') + '</div></div><div class="foot"><span>입구에서 입장 터치 대기</span></div>';
     } else {
       var pct = Math.round(r / total * 100);
-      html += '<div class="label">' + (cls === 'warn' ? '곧 종료' : '사용 중') + '</div>'
+      html += '<div class="label">' + (pr ? '입장 준비 · ' + pr + '초 후 시작' : cls === 'warn' ? '곧 종료' : '사용 중') + '</div>'
         + '<div class="time">' + mmss(r) + '</div><div class="sub">' + durLabel(total) + ' 이용</div></div>'
         + '<div class="foot"><div class="bar" style="width:' + pct + '%"></div><span>남은 시간 ' + pct + '%</span></div>';
       if (cls === 'warn') tickerMsg = '🔔 ' + b.no + '번 타석이 곧 종료됩니다';

@@ -10,7 +10,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="config.js?v=202611171430"></script>
+<script src="config.js?v=202611190955"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #f2efe6; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
@@ -47,7 +47,7 @@
   .agree input { width: 24px; height: 24px; accent-color: #0e3b24; flex-shrink: 0; }
   .agree label { font-size: 16px; font-weight: 700; color: #15241b; }
   .step { flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
-  .left .rules { margin: 0; padding-left: 1.8em; font-size: clamp(18px, min(3.3vh, 2.05vw), 36px); line-height: 1.5; word-break: keep-all; min-height: 0; overflow: auto; color: #2f2d28; display: flex; flex-direction: column; justify-content: safe center; gap: clamp(8px, 2vh, 22px); flex-grow: 1; }
+  .left .rules { margin: 0; padding-left: 1.8em; font-size: 22px; font-size: clamp(17px, min(2.9vh, 1.85vw), 34px); line-height: 1.42; word-break: keep-all; min-height: 0; overflow: auto; color: #2f2d28; display: flex; flex-direction: column; justify-content: safe center; gap: clamp(6px, 1.6vh, 18px); flex-grow: 1; }
   .left .rules li::marker { font-weight: 900; color: #0e3b24; }
   .agreeBtn { min-height: 76px; flex-shrink: 0; border: none; border-radius: 14px; background: #0e3b24; color: #f7f4ec; font-size: 21px; font-weight: 900; }
   .agreed { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #f2f7f0; border: 1px solid #cfdccf; border-radius: 10px; padding: 6px 8px 6px 14px; font-size: 15px; font-weight: 700; color: #1d6b40; flex-shrink: 0; }
@@ -74,6 +74,7 @@
   .mapbox { flex: 1 1 auto; position: relative; overflow: hidden; border: 1px solid #e0dccd; border-radius: 12px; background: #faf8f2; min-height: 160px; }
   .mapbox svg { position: absolute; left: 6px; top: 6px; width: calc(100% - 12px); height: calc(100% - 12px); display: block; }
   .mapbox .pick { cursor: pointer; }
+  .mapbox .mapLoading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #8a8576; }
   .mapbox text { font-variant-numeric: tabular-nums; }
   .mapbox .walk { animation: walk 1.2s linear infinite; }
   @keyframes walk { to { stroke-dashoffset: -24; } }
@@ -126,6 +127,7 @@
       <div class="step" id="stepRules">
         <h2>1. 이용 수칙</h2>
         <ol class="rules">
+        <li>타석당 1명만 이용하며, 레슨(지도·교습)은 하지 않겠습니다.</li>
         <li>이용 시간을 지키며, 대기 고객이 있으면 양보하겠습니다.</li>
         <li>실내에서는 흡연 및 음주를 하지 않겠습니다.</li>
         <li>연습 스윙은 지정된 타석 안에서만 하며, 주변 안전에 유의하겠습니다.</li>
@@ -157,11 +159,11 @@
       <div id="waitBox"><div class="fullMsg"><span class="dot"></span><span id="waitTitle">3. 현재 모든 타석이 사용 중입니다 — 대기 등록</span></div></div>
 
       <!-- 룸 평면도: 여기서 타석을 눌러 선택 (사용 중인 타석은 남은 시간 표시) -->
-      <div class="mapbox" id="mapBox"></div>
+      <div class="mapbox" id="mapBox"><div class="mapLoading">타석 현황을 불러오는 중…</div></div>
       <div class="waitInfo" id="waitInfo">자리가 나면 현황판과 음성으로 안내됩니다.</div>
       <div id="waitList"></div>
 
-      <h2>4. 이용 시간</h2>
+      <h2 id="minsH">4. 이용 시간</h2>
       <div id="mins"></div>
 
       <button id="go" onclick="submit()">시작</button>
@@ -189,6 +191,8 @@ document.querySelectorAll('#idType button').forEach(function (b) { b.onclick = f
 /* ---------- 이용 시간 버튼 ---------- */
 function drawMins() {
   var box = document.getElementById('mins'); box.innerHTML = '';
+  var one = DUR_OPTIONS.length < 2;   // 시간이 하나뿐이면 선택칸 숨김
+  box.style.display = one ? 'none' : ''; document.getElementById('minsH').style.display = one ? 'none' : '';
   DUR_OPTIONS.forEach(function (m) {
     var b = document.createElement('button'); b.textContent = durLabel(m);
     if (m === selSec) b.className = 'on';
@@ -202,7 +206,8 @@ function poll() {
   apiGet('status').then(function (s) {
     fails = 0; document.getElementById('net').style.display = 'none';
     if (s) { st = s; stAt = Date.now(); render(); }
-  }).catch(function () { if (++fails >= 3) document.getElementById('net').style.display = 'block'; });
+    else if (!st) setTimeout(poll, 1500);   // 서버가 바빠 빈 응답이면 처음엔 빨리 다시 시도
+  }).catch(function () { if (++fails >= 3) document.getElementById('net').style.display = 'block'; if (!st) setTimeout(poll, 2000); });
 }
 function nowSrv() { return st.now + (Date.now() - stAt); }
 function rem(b) { return b.endAt ? Math.max(0, Math.round((b.endAt - nowSrv()) / 1000)) : 0; }
@@ -292,7 +297,9 @@ function drawMap(sel) {
   // 타석 안 글자 (매초 갱신)
   st.bays.forEach(function (b) {
     var a = document.getElementById('ms' + b.no), t = document.getElementById('mt' + b.no); if (!a) return;
-    if (b.status === 'busy') { a.textContent = '사용 중'; t.textContent = mmss(rem(b)); }
+    var pr = prepLeft(b, nowSrv());
+    if (b.status === 'busy' && pr) { a.textContent = '입장 준비'; t.textContent = pr + '초 후 시작'; }
+    else if (b.status === 'busy') { a.textContent = '사용 중'; t.textContent = mmss(Math.min(rem(b), playTotal(b))); }
     else if (b.status === 'held') { a.textContent = '입장 대기'; t.textContent = ''; }
     else { a.textContent = (direct && b.no === sel) ? '선택 ✓' : '이용 가능'; t.textContent = ''; }
   });
@@ -363,18 +370,21 @@ function toast(t) { var e = document.getElementById('toast'); e.textContent = t;
 var okT = null;
 function busyShow(big, sub) {
   clearTimeout(okT);
+  document.getElementById('ok').onclick = null;
   document.getElementById('okSpin').style.display = 'block';
   document.getElementById('okBig').textContent = big;
   document.getElementById('okSub').textContent = sub || '잠시만 기다려 주세요';
   document.getElementById('ok').style.display = 'flex';
 }
+function okClose() { clearTimeout(okT); var o = document.getElementById('ok'); o.onclick = null; o.style.display = 'none'; reset(); }
 function okShow(big, sub) {
   clearTimeout(okT);
   document.getElementById('okSpin').style.display = 'none';
   document.getElementById('okBig').textContent = big;
   document.getElementById('okSub').textContent = sub;
   document.getElementById('ok').style.display = 'flex';
-  okT = setTimeout(function () { document.getElementById('ok').style.display = 'none'; reset(); }, 5000);
+  okT = setTimeout(okClose, DONE_SECONDS * 1000);
+  document.getElementById('ok').onclick = okClose;   // 화면을 누르면 바로 닫힘
 }
 function reset() { setAgreed(false); document.getElementById('id4').value = ''; setIdType('락커'); selSec = DUR_DEFAULT; drawMins(); busy = false; poll(); }
 function err(t) { clearTimeout(okT); document.getElementById('ok').style.display = 'none'; busy = false; toast(t || '통신 오류 — 다시 시도해 주세요.'); poll(); }
@@ -388,7 +398,7 @@ function submit() {
   if (direct) {
     busy = true; busyShow(selBay + '번 타석 배정 중…');
     apiPost('checkin', { bay: selBay, sec: selSec, phone4: who }).then(function (r) {
-      if (r && r.ok) { speak(bayWord(r.bay) + '번 타석, ' + durLabel(r.sec) + ' 이용을 시작합니다.'); okShow(r.bay + '번 타석', durLabel(r.sec) + ' 이용을 시작합니다. 즐거운 연습 되세요!'); }
+      if (r && r.ok) { speak(startSpeech(r)); okShow(r.bay + '번 타석', (r.prep ? durLabel(r.prep) + ' 뒤부터 ' : '') + durLabel(r.sec) + ' 이용 · 즐거운 연습 되세요!'); }
       else err(r && r.msg);
     }).catch(function (e) { err('통신 오류 — ' + (e && e.message ? e.message : '다시 시도해 주세요')); });
   } else {
@@ -434,7 +444,7 @@ function cancelWait(row, phone4) {
 function claim(row, phone4) {
   if (busy) return; busy = true; busyShow('입장 처리 중…');
   apiPost('claim', { row: row, phone4: phone4 }).then(function (r) {
-    if (r && r.ok) { speak(bayWord(r.bay) + '번 타석, ' + durLabel(r.sec) + ' 이용을 시작합니다.'); okShow(r.bay + '번 타석', '지금부터 ' + durLabel(r.sec) + '입니다. 즐거운 연습 되세요!'); }
+    if (r && r.ok) { speak(startSpeech(r)); okShow(r.bay + '번 타석', (r.prep ? durLabel(r.prep) + ' 뒤부터 ' : '') + durLabel(r.sec) + ' 이용 · 즐거운 연습 되세요!'); }
     else err(r && r.msg);
   }).catch(function (e) { err('통신 오류 — ' + (e && e.message ? e.message : '다시 시도해 주세요')); });
 }

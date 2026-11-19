@@ -4,8 +4,11 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbwFIWO6BAUXB_P3OhdkaXE1No
 
 // 체크인 때 고를 수 있는 이용시간 (단위: 초) — 숫자만 바꾸면 버튼이 바뀜
 //   예: [300, 600, 900] = 5분·10분·15분 / 테스트용 초 단위: [10, 20, 30]
-var DUR_OPTIONS = [300, 600, 900];   // 5분, 10분, 15분
+var DUR_OPTIONS = [600];             // 10분 고정 (하나만 두면 '이용 시간' 선택칸이 화면에서 사라짐)
 var DUR_DEFAULT = 600;               // 처음 선택돼 있는 시간 (10분)
+
+// 체크인·대기 등록 완료 안내창이 떠 있는 시간 (초) — 화면을 누르면 바로 닫힘
+var DONE_SECONDS = 1;
 
 // 버튼 누를 때 '딸깍' 소리 (끄려면 false)
 var CLICK_SOUND = true;
@@ -76,6 +79,11 @@ function whoSpeak(p) {   // 음성: "락커 번호 일 이 삼 사" (안 그러�
   return (m[1] === '휴대폰' ? '휴대폰 뒷번호 ' : m[1] + ' 번호 ') + digits;
 }
 function callSpeech(c) { return whoSpeak(c.phone4) + ' 고객님, ' + bayWord(c.bay) + '번 타석 이용 가능합니다. 입구 태블릿에서 입장을 시작해 주세요.'; }
+// 준비시간: 체크인 후 1분 동안은 '입장 준비', 그 뒤부터 이용시간 카운트
+//   prepLeft(b, now) → 준비시간 남은 초 (0이면 이용 중)   playTotal(b) → 이용시간(초, 준비 제외)
+function prepLeft(b, now) { return b && b.status === 'busy' && b.playAt ? Math.max(0, Math.ceil((b.playAt - now) / 1000)) : 0; }
+function playTotal(b) { return Math.max(1, Math.round((b.endAt - (b.playAt || b.startAt)) / 1000)); }
+function startSpeech(r) { return bayWord(r.bay) + '번 타석입니다. ' + (r.prep ? durLabel(r.prep) + ' 뒤부터 ' : '') + durLabel(r.sec) + ' 이용 시간이 시작됩니다.'; }
 function mmss(sec) {
   var m = Math.floor(sec / 60), s = sec % 60;
   return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;

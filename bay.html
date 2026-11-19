@@ -6,7 +6,7 @@
 <title>타석 카운트다운 · SEHYEON CC</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="config.js?v=202611171430"></script>
+<script src="config.js?v=202611190955"></script>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #0d1710; color: #f2f0e8; height: 100vh; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 5vh 6vw; overflow: hidden; user-select: none; text-align: center; }
@@ -66,13 +66,14 @@ function render() {
   if (!b) return;
   var stateEl = document.getElementById('state'), timeEl = document.getElementById('time');
   if (b.status === 'busy') {
-    var r = Math.max(0, Math.round((b.endAt - (st.now + (Date.now() - stAt))) / 1000));
+    var nowS = st.now + (Date.now() - stAt), total = playTotal(b), pr = prepLeft(b, nowS);
+    var r = Math.min(total, Math.max(0, Math.round((b.endAt - nowS) / 1000)));
     document.body.className = r <= st.warnSec ? 'warn' : '';
-    stateEl.className = 'state st-busy'; var total = (b.endAt - b.startAt) / 1000;
-    stateEl.textContent = '사용 중 · ' + durLabel(total) + ' 이용';
-    document.getElementById('cap').textContent = '남은 시간';
+    stateEl.className = 'state st-busy';
+    stateEl.textContent = pr ? '입장 준비 중 · ' + pr + '초 후 시작' : '사용 중 · ' + durLabel(total) + ' 이용';
+    document.getElementById('cap').textContent = pr ? '준비가 끝나면 시간이 줄어듭니다' : '남은 시간';
     timeEl.textContent = mmss(r);
-    miniUpdate({ top: BAY + '번 타석 · ' + (r === 0 ? '이용 시간 종료' : r <= st.warnSec ? '곧 종료' : '남은 시간'), time: mmss(r), level: r === 0 ? 'end' : r <= st.warnSec ? 'warn' : 'busy' });
+    miniUpdate({ top: BAY + '번 타석 · ' + (pr ? pr + '초 후 시작' : r === 0 ? '이용 시간 종료' : r <= st.warnSec ? '곧 종료' : '남은 시간'), time: mmss(r), level: r === 0 ? 'end' : r <= st.warnSec ? 'warn' : 'busy' });
     document.getElementById('bar').style.width = Math.round(r / total * 100) + '%';
     if (document.getElementById('confirm').style.display !== 'flex') document.getElementById('endBtn').style.display = 'inline-block';
     var k = BAY + '-' + b.endAt;
